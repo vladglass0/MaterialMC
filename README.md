@@ -28,8 +28,8 @@ Please understand that these builds are not intended for most users. There may b
 
 There are development builds available through:
 
-- [GitHub Actions](https://github.com/PrismLauncher/PrismLauncher/actions) (includes builds from pull requests opened by contributors)
-- [nightly.link](https://prismlauncher.org/nightly) (this will always point only to the latest version of develop)
+- [GitHub Actions](https://github.com/vladglass0/MaterialMC/actions) (includes builds from pull requests opened by contributors)
+- [nightly.link](https://nightly.link/vladglass0/MaterialMC/actions/runs/36621798249) (this will always point only to the latest version of develop)
 
 These have debug information in the binaries, so their file sizes are relatively larger.
 
