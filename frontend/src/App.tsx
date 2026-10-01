@@ -1,7 +1,9 @@
 import { createHashRouter, Navigate, RouterProvider } from "react-router-dom";
 import { InstanceActionsProvider } from "./components/InstanceActions";
 import { Layout } from "./components/Layout";
+import { PromptHost } from "./components/PromptHost";
 import { ToastProvider } from "./components/Toasts";
+import { useI18nVersion } from "./i18n";
 import { ConsoleRequestListener } from "./pages/ConsolePage";
 import { HomePage } from "./pages/HomePage";
 import { InstancesPage } from "./pages/InstancesPage";
@@ -45,9 +47,12 @@ const router = createHashRouter([
 ]);
 
 export function App() {
+  // Re-render everything when the language changes (strings are looked up during render).
+  const i18nVersion = useI18nVersion();
   return (
-    <ToastProvider>
+    <ToastProvider key={i18nVersion}>
       <RouterProvider router={router} />
+      <PromptHost />
     </ToastProvider>
   );
 }

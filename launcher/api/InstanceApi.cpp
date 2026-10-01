@@ -24,6 +24,7 @@
 
 #include "Application.h"
 #include "InstanceCopyPrefs.h"
+#include "InstanceDirUpdate.h"
 #include "InstanceCopyTask.h"
 #include "InstanceList.h"
 #include "icons/IconList.h"
@@ -34,7 +35,13 @@
 #include "minecraft/PackProfile.h"
 #include "minecraft/VanillaInstanceCreationTask.h"
 #include "minecraft/auth/AccountList.h"
+#include "minecraft/ShortcutUtils.h"
+#include "minecraft/WorldList.h"
 #include "minecraft/launch/MinecraftTarget.h"
+#include "interaction/UserInteraction.h"
+#include "tools/BaseProfiler.h"
+#include "DesktopServices.h"
+#include "FileSystem.h"
 #include "settings/SettingsObject.h"
 
 #include "ApiRouter.h"
@@ -200,6 +207,8 @@ QJsonObject InstanceApi::serializeInstance(MinecraftInstance* instance, const QS
         { "hasCrashed", instance->hasCrashed() },
         { "hasVersionBroken", instance->hasVersionBroken() },
         { "managedPack", managed },
+        { "supportsDemo", instance->supportsDemo() },
+        { "shortcutCount", static_cast<int>(instance->shortcuts().size()) },
     };
 }
 
@@ -214,12 +223,131 @@ void InstanceApi::registerMethods()
     });
     m_router->addSync("instances.get", [this](const QJsonObject& p) { return get(p); });
     m_router->addSync("instances.copy", [this](const QJsonObject& p) { return copy(p); });
-    m_router->addSync("instances.remove", [this](const QJsonObject& p) { return remove(p); });
-    m_router->addSync("instances.rename", [](const QJsonObject& p) {
+    m_router->addDeferred("instances.remove", [this](const QJsonObject& p) { return remove(p); });
+    // May ask whether to rename the folder too (InstRenamingMode), hence deferred.
+    m_router->addDeferred("instances.rename", [](const QJsonObject& p) {
         auto* instance = requireInstance(p);
-        instance->setName(params::requireNonEmpty(p, "name", 256));
+        const auto name = params::requireNonEmpty(p, "name", 256);
+        const auto before = instance->name();
+        instance->setName(name);
+        auto id = instance->id();
+        if (auto newRoot = askToUpdateInstanceDirName(instance, before, name); !newRoot.isEmpty()) {
+            auto* list = APPLICATION->instances();
+            const auto newId = QFileInfo(newRoot).fileName();
+            const auto group = list->getInstanceGroup(id);
+            const bool syncGroup = !group.isEmpty() && id != newId;
+            if (syncGroup) {
+                list->setInstanceGroup(id, GroupId());
+            }
+            list->loadList();
+            if (syncGroup) {
+                list->setInstanceGroup(newId, group);
+            }
+            id = newId;
+        }
+        return QJsonObject{ { "ok", true }, { "id", id } };
+    });
+    m_router->addSync("instances.renameGroup", [](const QJsonObject& p) {
+        const auto group = params::requireNonEmpty(p, "group", 256);
+        const auto name = params::requireNonEmpty(p, "name", 256).simplified();
+        auto* list = APPLICATION->instances();
+        if (!list->getGroups().contains(group)) {
+            throw ApiError::notFound(tr("Group '%1' does not exist").arg(group));
+        }
+        if (list->getGroups().contains(name, Qt::CaseInsensitive) && group.toLower() != name.toLower()) {
+            throw ApiError::invalidParams(QCoreApplication::translate("MainWindow", "Group already exists. :/"));
+        }
+        list->renameGroup(group, name);
         return ok();
     });
+    m_router->addSync("instances.deleteGroup", [](const QJsonObject& p) {
+        const auto group = params::requireNonEmpty(p, "group", 256);
+        APPLICATION->instances()->deleteGroup(group);
+        return ok();
+    });
+    m_router->addSync("instances.setGroupCollapsed", [](const QJsonObject& p) {
+        const auto group = params::requireString(p, "group", 256);
+        APPLICATION->instances()->on_GroupStateChanged(group, params::requireBool(p, "collapsed"));
+        return ok();
+    });
+    m_router->addSync("instances.overview", [](const QJsonObject&) {
+        auto* list = APPLICATION->instances();
+        QJsonArray collapsed;
+        for (const auto& g : list->getGroups()) {
+            if (!g.isEmpty() && list->isGroupCollapsed(g)) {
+                collapsed.append(g);
+            }
+        }
+        return QJsonObject{
+            { "canUndoTrash", list->trashedSomething() },
+            { "totalPlayTime", static_cast<double>(APPLICATION->playtimeSettings()->get("TotalPlayTime").toLongLong()) },
+            { "showGlobalGameTime", APPLICATION->settings()->get("ShowGlobalGameTime").toBool() },
+            { "collapsedGroups", collapsed },
+        };
+    });
+    m_router->addDeferred("instances.undoTrash", [this](const QJsonObject&) {
+        auto* list = APPLICATION->instances();
+        if (!list->trashedSomething()) {
+            throw ApiError::notFound(tr("Nothing to restore"));
+        }
+        if (!list->undoTrashInstance()) {
+            throw ApiError::io(QCoreApplication::translate(
+                "MainWindow", "Some instances and shortcuts could not be restored.\nPlease check your trashbin to manually restore them."));
+        }
+        scheduleChanged();
+        return ok();
+    });
+    m_router->addSync("instances.profilers", [](const QJsonObject& p) {
+        auto* instance = requireInstance(p);
+        QJsonArray out;
+        for (auto it = APPLICATION->profilers().cbegin(); it != APPLICATION->profilers().cend(); ++it) {
+            QString error;
+            const bool available = it.value()->check(&error);
+            out.append(QJsonObject{ { "key", it.key() }, { "name", it.value()->name() }, { "available", available }, { "error", error } });
+        }
+        return QJsonObject{ { "selected", instance->settings()->get("Profiler").toString() }, { "profilers", out } };
+    });
+    m_router->addSync("instances.setProfiler", [this](const QJsonObject& p) {
+        auto* instance = requireInstance(p);
+        const auto key = params::requireString(p, "profiler", 64);
+        if (!key.isEmpty() && !APPLICATION->profilers().contains(key)) {
+            throw ApiError::notFound(tr("Unknown profiler '%1'").arg(key));
+        }
+        instance->settings()->set("Profiler", key);
+        scheduleChanged();
+        return ok();
+    });
+    m_router->addSync("instances.shortcutTargets", [](const QJsonObject& p) {
+        auto* instance = requireInstance(p);
+        QJsonArray targets;
+        if (!DesktopServices::isFlatpak()) {
+            if (!FS::getDesktopDir().isEmpty()) {
+                targets.append("desktop");
+            }
+            if (!FS::getApplicationsDir().isEmpty()) {
+                targets.append("applications");
+            }
+        }
+        targets.append("other");
+        QJsonArray worlds;
+        const bool quickJoin = instance->traits().contains("feature:is_quick_play_singleplayer");
+        if (quickJoin) {
+            auto* worldList = instance->worldList();
+            worldList->update();
+            for (const auto& world : worldList->allWorlds()) {
+                worlds.append(QJsonObject{ { "name", world.name() }, { "lastPlayed", timestamp(world.lastPlayed()) } });
+            }
+        }
+        return QJsonObject{ { "targets", targets }, { "worlds", worlds }, { "quickPlaySingleplayer", quickJoin } };
+    });
+    m_router->addSync("instances.copyInfo", [](const QJsonObject& p) {
+        auto* instance = requireInstance(p);
+        const auto fs = FS::statFS(instance->instanceRoot()).fsType;
+        return QJsonObject{ { "cloneSupported", FS::canCloneOnFS(fs) },
+                            { "linkSupported", FS::canLinkOnFS(fs) },
+                            { "filesystem", FS::getFilesystemTypeName(fs) } };
+    });
+    m_router->addDeferred("instances.createShortcut", [](const QJsonObject& p) { return createShortcut(p); });
     m_router->addSync("instances.setGroup", [](const QJsonObject& p) {
         auto* instance = requireInstance(p);
         const auto group = params::optionalString(p, "group", 256).value_or(QString()).trimmed();
@@ -242,7 +370,8 @@ void InstanceApi::registerMethods()
     });
     m_router->addSync("instances.getSettings", [this](const QJsonObject& p) { return getSettings(p); });
     m_router->addSync("instances.setSettings", [this](const QJsonObject& p) { return setSettings(p); });
-    m_router->addSync("instances.launch", [this](const QJsonObject& p) { return launch(p); });
+    // Deferred: the launch controller may ask questions (account, player name, demo) before it returns.
+    m_router->addDeferred("instances.launch", [this](const QJsonObject& p) { return launch(p); });
     m_router->addSync("instances.kill", [this](const QJsonObject& p) { return kill(p); });
 
     // Creating needs the version list loaded, which may involve a download: asynchronous.
@@ -365,6 +494,12 @@ QJsonValue InstanceApi::get(const QJsonObject& params) const
         }
     }
     obj.insert("components", components);
+    obj.insert("statusDescription", instance->getStatusbarDescription());
+    QJsonArray shortcuts;
+    for (const auto& sc : instance->shortcuts()) {
+        shortcuts.append(QJsonObject{ { "name", sc.name }, { "path", sc.filePath } });
+    }
+    obj.insert("shortcuts", shortcuts);
     return obj;
 }
 
@@ -410,8 +545,16 @@ QJsonValue InstanceApi::launch(const QJsonObject& params)
         target = std::make_shared<MinecraftTarget>(MinecraftTarget::parse(*world, true));
     }
 
+    if (const auto profiler = params::optionalString(params, "profiler", 64)) {
+        if (!profiler->isEmpty() && !APPLICATION->profilers().contains(*profiler)) {
+            throw ApiError::notFound(tr("Unknown profiler '%1'").arg(*profiler));
+        }
+        instance->settings()->set("Profiler", *profiler);
+    }
+
     const auto id = instance->id();
     m_launchErrors.remove(id);
+    m_requestedOfflineName.insert(id, offlineName);
     m_states[id] = "launching";
     if (!APPLICATION->launch(instance, mode, target, account, offlineName)) {
         m_states.remove(id);
@@ -443,10 +586,8 @@ QJsonValue InstanceApi::remove(const QJsonObject& params)
         throw ApiError("INSTANCE_RUNNING", tr("Stop %1 before deleting it").arg(instance->name()));
     }
     const auto id = instance->id();
-    const auto linked = APPLICATION->instances()->getLinkedInstancesById(id);
-    if (!linked.isEmpty()) {
-        throw ApiError("INSTANCE_LINKED", tr("%1 is linked to other instances (%2); unlink them first").arg(instance->name(), linked.join(", ")),
-                       QJsonArray::fromStringList(linked));
+    if (!checkLinkedInstances(id, QCoreApplication::translate("MainWindow", "Deleting"))) {
+        throw ApiError::cancelled();
     }
     if (!APPLICATION->instances()->trashInstance(id)) {
         APPLICATION->instances()->deleteInstance(id);
@@ -460,14 +601,83 @@ QJsonValue InstanceApi::copy(const QJsonObject& params)
     auto* instance = requireInstance(params);
     const auto name = params::requireNonEmpty(params, "name", 256);
     InstanceCopyPrefs prefs;
-    prefs.enableCopySaves(params::requireBool(params, "copySaves"));
-    prefs.enableKeepPlaytime(params::requireBool(params, "keepPlaytime"));
+    prefs.enableCopySaves(params::optionalBool(params, "copySaves", true));
+    prefs.enableKeepPlaytime(params::optionalBool(params, "keepPlaytime", true));
+    prefs.enableCopyGameOptions(params::optionalBool(params, "copyGameOptions", true));
+    prefs.enableCopyResourcePacks(params::optionalBool(params, "copyResourcePacks", true));
+    prefs.enableCopyShaderPacks(params::optionalBool(params, "copyShaderPacks", true));
+    prefs.enableCopyServers(params::optionalBool(params, "copyServers", true));
+    prefs.enableCopyMods(params::optionalBool(params, "copyMods", true));
+    prefs.enableCopyScreenshots(params::optionalBool(params, "copyScreenshots", true));
+    prefs.enableUseSymLinks(params::optionalBool(params, "useSymLinks", false));
+    prefs.enableLinkRecursively(params::optionalBool(params, "linkRecursively", false));
+    prefs.enableUseHardLinks(params::optionalBool(params, "useHardLinks", false));
+    prefs.enableDontLinkSaves(params::optionalBool(params, "dontLinkSaves", false));
+    prefs.enableUseClone(params::optionalBool(params, "useClone", false));
     auto* copyTask = new InstanceCopyTask(instance, prefs);
     copyTask->setName(name);
     copyTask->setGroup(params::optionalString(params, "group", 256).value_or(QString()));
-    copyTask->setIcon(instance->iconKey());
+    const auto iconKey = params::optionalString(params, "iconKey", 256).value_or(instance->iconKey());
+    if (APPLICATION->icons()->getIconIndex(iconKey) < 0) {
+        throw ApiError::notFound(tr("Unknown icon '%1'").arg(iconKey));
+    }
+    copyTask->setIcon(iconKey);
     Task::Ptr task(APPLICATION->instances()->wrapInstanceTask(copyTask));
     return QJsonObject{ { "taskId", m_tasks->start(task, "instance.copy", tr("Copying %1").arg(instance->name()), instance->id()) } };
+}
+
+QJsonValue InstanceApi::createShortcut(const QJsonObject& params)
+{
+    auto* instance = requireInstance(params);
+    static constexpr std::pair<const char*, ShortcutTarget> Targets[] = {
+        { "desktop", ShortcutTarget::Desktop }, { "applications", ShortcutTarget::Applications }, { "other", ShortcutTarget::Other }
+    };
+    const auto target = params::requireEnum(params, "target", Targets);
+    auto name = params::optionalString(params, "name", 256).value_or(QString()).trimmed();
+    const auto iconKey = params::optionalString(params, "iconKey", 256).value_or(instance->iconKey());
+
+    QString targetString = QCoreApplication::translate("CreateShortcutDialog", "instance");
+    QStringList extraArgs;
+    if (const auto world = params::optionalString(params, "world", 255); world && !world->isEmpty()) {
+        targetString = QCoreApplication::translate("CreateShortcutDialog", "world");
+        extraArgs = { "--world", *world };
+        if (name.isEmpty()) {
+            name = QCoreApplication::translate("CreateShortcutDialog", "%1 - %2").arg(instance->name(), *world);
+        }
+    } else if (const auto server = params::optionalString(params, "server", 512); server && !server->trimmed().isEmpty()) {
+        targetString = QCoreApplication::translate("CreateShortcutDialog", "server");
+        extraArgs = { "--server", server->trimmed() };
+        if (name.isEmpty()) {
+            name = QCoreApplication::translate("CreateShortcutDialog", "%1 - Server %2").arg(instance->name(), server->trimmed());
+        }
+    }
+    if (name.isEmpty()) {
+        name = instance->name();
+    }
+    if (const auto accountId = params::optionalString(params, "accountId", 256)) {
+        MinecraftAccountPtr account;
+        auto* accounts = APPLICATION->accounts();
+        for (int i = 0; i < accounts->count(); i++) {
+            if (accounts->at(i)->internalId() == *accountId) {
+                account = accounts->at(i);
+            }
+        }
+        if (!account) {
+            throw ApiError::accountNotFound(*accountId);
+        }
+        extraArgs.append({ "--profile", account->profileName() });
+    }
+
+    ShortcutUtils::Shortcut args{ instance, name, targetString, extraArgs, iconKey, target };
+    bool created = false;
+    if (target == ShortcutTarget::Desktop) {
+        created = ShortcutUtils::createInstanceShortcutOnDesktop(args);
+    } else if (target == ShortcutTarget::Applications) {
+        created = ShortcutUtils::createInstanceShortcutInApplications(args);
+    } else {
+        created = ShortcutUtils::createInstanceShortcutInOther(args);
+    }
+    return QJsonObject{ { "created", created } };
 }
 
 QJsonObject InstanceApi::readSettings(MinecraftInstance* instance)
@@ -559,19 +769,42 @@ void InstanceApi::recordLaunchError(MinecraftInstance* instance, const ApiError&
 
 MinecraftAccountPtr InstanceApi::chooseAccount(MinecraftInstance* instance)
 {
+    // Same question as the former ProfileSelectDialog: which account, and should it become the default?
     auto* accounts = APPLICATION->accounts();
-    MinecraftAccountPtr only;
-    int owning = 0;
+    QJsonArray items;
     for (int i = 0; i < accounts->count(); i++) {
-        if (accounts->at(i)->ownsMinecraft()) {
-            only = accounts->at(i);
-            owning++;
+        const auto account = accounts->at(i);
+        items.append(QJsonObject{ { "id", account->internalId() },
+                                  { "label", account->displayName() },
+                                  { "description", account->typeString() + (account->ownsMinecraft() ? QString() : " · " + tr("no Minecraft license")) } });
+    }
+    if (items.isEmpty()) {
+        recordLaunchError(instance, ApiError("NO_ACCOUNT", tr("No Minecraft account is signed in.")));
+        return nullptr;
+    }
+    interaction::Prompt prompt;
+    prompt.kind = "choice";
+    prompt.title = QCoreApplication::translate("ProfileSelectDialog", "Select an Account");
+    prompt.text = QCoreApplication::translate("ProfileSelectDialog", "Select a profile.");
+    prompt.buttons = { interaction::reject(tr("Cancel")), interaction::accept(tr("OK")) };
+    prompt.defaultButton = "ok";
+    prompt.checkbox = QCoreApplication::translate("ProfileSelectDialog", "Use as default?");
+    prompt.payload = { { "items", items }, { "selected", items.first().toObject().value("id") } };
+    const auto answer = interaction::UserInteraction::instance()->askBlocking(prompt);
+    if (!answer.is("ok")) {
+        recordLaunchError(instance, ApiError::cancelled(tr("No account was selected")));
+        return nullptr;
+    }
+    const auto selected = answer.data.value("selected").toString();
+    for (int i = 0; i < accounts->count(); i++) {
+        if (accounts->at(i)->internalId() == selected) {
+            if (answer.checked) {
+                accounts->setDefaultAccount(accounts->at(i));
+            }
+            return accounts->at(i);
         }
     }
-    if (owning == 1) {
-        return only;
-    }
-    recordLaunchError(instance, ApiError("NO_ACCOUNT", tr("No default account is selected. Choose one on the Accounts page.")));
+    recordLaunchError(instance, ApiError("NO_ACCOUNT", tr("No account was selected")));
     return nullptr;
 }
 
@@ -602,17 +835,47 @@ bool InstanceApi::reauthenticate(MinecraftInstance* instance, const MinecraftAcc
 
 bool InstanceApi::confirmDemo(MinecraftInstance* instance, bool hasAccount)
 {
-    recordLaunchError(instance, ApiError("NO_ACCOUNT", hasAccount ? tr("This account does not own Minecraft. You can play the demo instead.")
-                                                                  : tr("No Minecraft account is signed in.")));
-    return false;
+    QString text = hasAccount ? QCoreApplication::translate(
+                                    "LaunchController", "This account does not own Minecraft.\nYou need to purchase the game first to play the full version.")
+                              : QCoreApplication::translate("LaunchController", "No account was selected for launch.");
+    text += QCoreApplication::translate("LaunchController", "\n\nDo you want to play the demo?");
+    const auto answer = interaction::message(QCoreApplication::translate("LaunchController", "Play demo?"), text, "warning",
+                                             { interaction::reject(QCoreApplication::translate("LaunchController", "Cancel")),
+                                               interaction::accept(QCoreApplication::translate("LaunchController", "Play Demo"), "demo") },
+                                             "cancel");
+    if (!answer.is("demo")) {
+        recordLaunchError(instance, ApiError("NO_ACCOUNT", hasAccount ? tr("This account does not own Minecraft.")
+                                                                      : tr("No Minecraft account is signed in.")));
+        return false;
+    }
+    return true;
 }
 
-std::optional<QString> InstanceApi::offlineName(MinecraftInstance*, const QString& suggested, const QString&)
+std::optional<QString> InstanceApi::offlineName(MinecraftInstance* instance, const QString& suggested, const QString& reason)
 {
-    if (suggested.trimmed().isEmpty()) {
-        return QStringLiteral("Player");
+    if (const auto requested = m_requestedOfflineName.value(instance->id()); !requested.isEmpty()) {
+        return requested;
     }
-    return suggested.trimmed();
+    static const QRegularExpression s_validName(QStringLiteral("^[A-Za-z0-9_]{3,16}$"));
+    interaction::Prompt prompt;
+    prompt.kind = "text";
+    prompt.title = QCoreApplication::translate("LaunchController", "Player name");
+    prompt.text = reason;
+    prompt.buttons = { interaction::reject(tr("Cancel")), interaction::accept(tr("OK")) };
+    prompt.defaultButton = "ok";
+    prompt.payload = { { "value", suggested.trimmed().isEmpty() ? QStringLiteral("Player") : suggested.trimmed() },
+                       { "maxLength", 16 },
+                       { "pattern", "^[A-Za-z0-9_]{3,16}$" },
+                       { "patternHint", QCoreApplication::translate("ChooseOfflineNameDialog",
+                                                                    "Username must be between 3 and 16 characters long and can only contain "
+                                                                    "letters, numbers and underscores.") } };
+    const auto answer = interaction::UserInteraction::instance()->askBlocking(prompt);
+    const auto name = answer.data.value("value").toString().trimmed();
+    if (!answer.is("ok") || !s_validName.match(name).hasMatch()) {
+        recordLaunchError(instance, ApiError::cancelled(tr("No player name was chosen")));
+        return std::nullopt;
+    }
+    return name;
 }
 
 bool InstanceApi::setupProfile(MinecraftInstance* instance, const MinecraftAccountPtr& account)
@@ -641,7 +904,19 @@ bool InstanceApi::confirmKill(MinecraftInstance*)
 
 void InstanceApi::profilerReady(MinecraftInstance* instance, const QString& message)
 {
-    qInfo() << "Profiler ready for" << instance->id() << ":" << message;
+    // The game waits until the user confirms, like the Qt dialog did.
+    const auto answer = interaction::message(
+        QCoreApplication::translate("LaunchController", "Waiting."),
+        QCoreApplication::translate("LaunchController",
+                                    "The game launch is delayed until you press the "
+                                    "button. This is the right time to setup the profiler, as the "
+                                    "profiler server is running now.\n\n%1")
+            .arg(message),
+        "info", { interaction::accept(QCoreApplication::translate("LaunchController", "&Launch").remove('&'), "launch") }, "launch",
+        QCoreApplication::translate("LaunchController", "Disable profiler on next launch"));
+    if (answer.checked) {
+        instance->settings()->set("Profiler", "");
+    }
 }
 
 void InstanceApi::launchFinished(MinecraftInstance* instance, bool success, bool aborted, const QString& reason)
@@ -651,6 +926,7 @@ void InstanceApi::launchFinished(MinecraftInstance* instance, bool success, bool
     const auto error = m_launchErrors.take(id);
     const bool killed = m_killRequested.remove(id);
     aborted = aborted || killed;
+    m_requestedOfflineName.remove(id);
     if (previous == QLatin1String("running")) {
         const QJsonObject payload{ { "instanceId", id }, { "success", success }, { "reason", killed ? tr("Stopped by the user") : reason } };
         m_router->emitEvent("instance.stopped", payload);

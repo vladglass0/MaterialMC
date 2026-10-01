@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { materialmc } from "../api/client";
+import { ModpackCreate } from "../components/ModpackCreate";
+import { t, useI18nVersion } from "../i18n";
 import { ErrorBanner, Spinner } from "../components/common";
 import { formatDate, LOADER_NAMES } from "../components/format";
 import { useToasts } from "../components/Toasts";
@@ -32,6 +34,23 @@ function loaderAvailable(loader: LoaderKind, mc: MinecraftVersion | undefined): 
 }
 
 export function CreateInstancePage() {
+  useI18nVersion();
+  const [source, setSource] = useState<"custom" | "import" | "modrinth" | "curseforge">("custom");
+  return (
+    <>
+      <div className="segmented" role="tablist" aria-label={t("Instance source")} style={{ margin: "16px 24px 0", flexWrap: "wrap" }}>
+        {(["custom", "import", "modrinth", "curseforge"] as const).map((id) => (
+          <button key={id} role="tab" aria-selected={source === id} className={source === id ? "active" : ""} onClick={() => setSource(id)}>
+            {id === "custom" ? t("Custom") : id === "import" ? t("Import") : id === "modrinth" ? "Modrinth" : "CurseForge"}
+          </button>
+        ))}
+      </div>
+      {source === "custom" ? <CustomInstancePage /> : <ModpackCreate key={source} source={source} />}
+    </>
+  );
+}
+
+function CustomInstancePage() {
   const navigate = useNavigate();
   const { showError, notify } = useToasts();
   const [types, setTypes] = useState<Set<string>>(new Set(["release"]));

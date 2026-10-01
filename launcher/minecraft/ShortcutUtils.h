@@ -40,7 +40,6 @@
 #include "BaseInstance.h"
 
 #include <QList>
-#include <QMessageBox>
 
 namespace ShortcutUtils {
 /// A struct to hold parameters for creating a shortcut
@@ -48,7 +47,6 @@ struct Shortcut {
     BaseInstance* instance;
     QString name;
     QString targetString;
-    QWidget* parent = nullptr;
     QStringList extraArgs = {};
     QString iconKey = "";
     ShortcutTarget target;

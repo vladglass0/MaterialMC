@@ -57,6 +57,8 @@ const char* loaderUid(const QString& kind)
     throw ApiError::invalidParams(QObject::tr("Unknown mod loader '%1'").arg(kind));
 }
 
+}  // namespace
+
 /**
  * Makes sure `list` is loaded (from the cache or the network), then calls `then`.
  * Loading runs as a tracked task so it shows up in the downloads view.
@@ -93,7 +95,7 @@ void withLoadedList(BaseVersionList* list,
     }
 }
 
-QJsonObject serializeMetaVersion(const Meta::Version::Ptr& v)
+QJsonObject serializeMetaVersion(const std::shared_ptr<Meta::Version>& v)
 {
     return {
         { "version", v->version() },
@@ -102,8 +104,6 @@ QJsonObject serializeMetaVersion(const Meta::Version::Ptr& v)
         { "recommended", v->isRecommended() },
     };
 }
-
-}  // namespace
 
 void registerVersionApi(ApiRouter* router, TaskTracker* tasks, QObject* context)
 {

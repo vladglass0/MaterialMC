@@ -38,6 +38,9 @@ export type FolderTarget =
   | "icons"
   | "logs"
   | "java"
+  | "mods"
+  | "skins"
+  | "catpacks"
   | "instance"
   | "instance.game"
   | "instance.mods"
@@ -46,7 +49,13 @@ export type FolderTarget =
   | "instance.texturepacks"
   | "instance.saves"
   | "instance.screenshots"
-  | "instance.logs";
+  | "instance.logs"
+  | "instance.crashreports"
+  | "instance.config"
+  | "instance.libraries"
+  | "instance.coremods"
+  | "instance.nilmods"
+  | "instance.datapacks";
 
 export interface OpenFolderParams {
   target: FolderTarget;
@@ -62,4 +71,8 @@ export interface IconInfo {
   key: string;
   name: string;
   url: string;
+  /** Categories of the Qt icon picker. */
+  category: "modern" | "legacy" | "modpack" | "custom";
+  /** User-installed icon file that can be removed. */
+  removable: boolean;
 }

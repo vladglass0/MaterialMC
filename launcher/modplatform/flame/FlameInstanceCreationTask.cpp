@@ -55,8 +55,7 @@
 #include "settings/INISettingsObject.h"
 
 #include "tasks/ConcurrentTask.h"
-#include "ui/dialogs/BlockedModsDialog.h"
-#include "ui/dialogs/CustomMessageBox.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 #include <QDebug>
 #include <QFileInfo>
@@ -67,8 +66,7 @@
 #include "minecraft/World.h"
 #include "minecraft/mod/tasks/LocalResourceParse.h"
 #include "net/ApiRequest.h"
-#include "ui/dialogs/UntrustedModsDialog.h"
-#include "ui/pages/modplatform/OptionalModDialog.h"
+#include "interaction/UserInteraction.h"
 
 bool FlameCreationTask::abort()
 {
@@ -154,9 +152,10 @@ void FlameCreationTask::executeTask()
 
     auto warnUser = [this, createInst](const QString& title,
                                        const QString& text) {  // We don't have an old index file, so we may duplicate stuff!
-        auto* dialog = CustomMessageBox::selectable(m_parent, title, text, QMessageBox::Warning, QMessageBox::Ok | QMessageBox::Cancel);
+        const auto answer = interaction::message(title, text, "warning",
+                                                 { interaction::reject(tr("Cancel")), interaction::accept(tr("OK")) }, "ok");
 
-        if (dialog->exec() == QDialog::DialogCode::Rejected) {
+        if (!answer.is("ok")) {
             emitAborted();
             return;
         }
@@ -369,8 +368,7 @@ bool FlameCreationTask::promptForUntrustedMods()
         return true;
     }
 
-    UntrustedModsDialog dialog{ untrustedMods, m_parent };
-    return dialog.exec() == QDialog::Accepted;
+    return interaction::confirmUntrustedMods(untrustedMods);
 }
 
 void FlameCreationTask::createInstance()
@@ -551,13 +549,13 @@ void FlameCreationTask::idResolverSucceeded()
     }
 
     if (!optionalFiles.empty()) {
-        OptionalModDialog optionalModDialog(m_parent, optionalFiles);
-        if (optionalModDialog.exec() == QDialog::Rejected) {
+        auto selected = interaction::chooseOptionalMods(optionalFiles);
+        if (!selected) {
             emitAborted();
             return;
         }
 
-        m_selectedOptionalMods = optionalModDialog.getResult();
+        m_selectedOptionalMods = *selected;
     }
 
     // first check for blocked mods
@@ -590,15 +588,10 @@ void FlameCreationTask::idResolverSucceeded()
     if (anyBlocked) {
         qWarning() << "Blocked mods found, displaying mod list";
 
-        BlockedModsDialog messageDialog(m_parent, tr("Blocked mods found"),
-                                        tr("The following files are not available for download in third party launchers.<br/>"
-                                           "You will need to manually download them and add them to the instance."),
-                                        blockedMods);
-
-        messageDialog.setModal(true);
-
-        if (messageDialog.exec() != 0) {
-            qDebug() << "Post dialog blocked mods list:" << blockedMods;
+        if (interaction::resolveBlockedMods(tr("Blocked mods found"),
+                                            tr("The following files are not available for download in third party launchers.<br/>"
+                                               "You will need to manually download them and add them to the instance."),
+                                            blockedMods)) {
             copyBlockedMods(blockedMods);
             setupDownloadJob();
         } else {

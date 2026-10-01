@@ -21,9 +21,7 @@
 #include "modplatform/ModIndex.h"
 #include "settings/INISettingsObject.h"
 
-#include "ui/dialogs/CustomMessageBox.h"
-#include "ui/dialogs/UntrustedModsDialog.h"
-#include "ui/pages/modplatform/OptionalModDialog.h"
+#include "interaction/UserInteraction.h"
 
 #include <QAbstractButton>
 #include <QFileInfo>
@@ -144,12 +142,13 @@ void ModrinthCreationTask::executeTask()
         }
     } else {
         // We don't have an old index file, so we may duplicate stuff!
-        auto* dialog = CustomMessageBox::selectable(m_parent, tr("No index file."),
-                                                    tr("We couldn't find a suitable index file for the older version. This may cause some "
-                                                       "of the files to be duplicated. Do you want to continue?"),
-                                                    QMessageBox::Warning, QMessageBox::Ok | QMessageBox::Cancel);
+        const auto answer =
+            interaction::message(tr("No index file."),
+                                 tr("We couldn't find a suitable index file for the older version. This may cause some "
+                                    "of the files to be duplicated. Do you want to continue?"),
+                                 "warning", { interaction::reject(tr("Cancel")), interaction::accept(tr("OK")) }, "ok");
 
-        if (dialog->exec() == QDialog::DialogCode::Rejected) {
+        if (!answer.is("ok")) {
             emitAborted();
             return;
         }
@@ -415,13 +414,13 @@ bool ModrinthCreationTask::parseManifest(const QString& indexPath, std::vector<F
             for (const auto& file : optionalFiles) {
                 oFiles.push_back(file.path);
             }
-            OptionalModDialog optionalModDialog(m_parent, oFiles);
-            if (optionalModDialog.exec() == QDialog::Rejected) {
+            auto selected = interaction::chooseOptionalMods(oFiles);
+            if (!selected) {
                 emitAborted();
                 return false;
             }
 
-            auto selectedMods = optionalModDialog.getResult();
+            const auto& selectedMods = *selected;
             for (auto file : optionalFiles) {
                 if (selectedMods.contains(file.path)) {
                     file.required = true;
@@ -490,8 +489,7 @@ bool ModrinthCreationTask::promptForUntrustedMods()
         return true;
     }
 
-    UntrustedModsDialog dialog{ untrustedMods, m_parent };
-    return dialog.exec() == QDialog::Accepted;
+    return interaction::confirmUntrustedMods(untrustedMods);
 }
 
 ModrinthCreationTask::ModrinthCreationTask(const QString& stagingPath,

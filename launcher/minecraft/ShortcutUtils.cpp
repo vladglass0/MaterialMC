@@ -42,6 +42,8 @@
 #include <QApplication>
 #include <QFileDialog>
 
+#include "interaction/UserInteraction.h"
+
 #include <BuildConfig.h>
 #include <DesktopServices.h>
 #include <icons/IconList.h>
@@ -62,8 +64,8 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
     QStringList args;
 #if defined(Q_OS_MACOS)
     if (appPath.startsWith("/private/var/")) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"),
-                              QObject::tr("The launcher is in the folder it was extracted from, therefore it cannot create shortcuts."));
+        interaction::notify(QObject::tr("Create Shortcut"),
+                              QObject::tr("The launcher is in the folder it was extracted from, therefore it cannot create shortcuts."), "error");
         return false;
     }
 
@@ -71,7 +73,7 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     QFile iconFile(iconPath);
     if (!iconFile.open(QFile::WriteOnly)) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for application: %1").arg(iconFile.errorString()));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for application: %1").arg(iconFile.errorString()), "error");
         return false;
     }
 
@@ -81,7 +83,7 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     if (!success) {
         iconFile.remove();
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for application."));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for application."), "error");
         return false;
     }
 #elif defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD) || defined(Q_OS_OPENBSD)
@@ -89,9 +91,8 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
         // AppImage!
         appPath = QProcessEnvironment::systemEnvironment().value(QStringLiteral("APPIMAGE"));
         if (appPath.isEmpty()) {
-            QMessageBox::critical(
-                shortcut.parent, QObject::tr("Create Shortcut"),
-                QObject::tr("Launcher is running as misconfigured AppImage? ($APPIMAGE environment variable is missing)"));
+            interaction::notify(QObject::tr("Create Shortcut"),
+                QObject::tr("Launcher is running as misconfigured AppImage? ($APPIMAGE environment variable is missing)"), "error");
         } else if (appPath.endsWith("/")) {
             appPath.chop(1);
         }
@@ -101,7 +102,7 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     QFile iconFile(iconPath);
     if (!iconFile.open(QFile::WriteOnly)) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut: %1").arg(iconFile.errorString()));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut: %1").arg(iconFile.errorString()), "error");
         return false;
     }
     bool success = icon->icon().pixmap(64, 64).save(&iconFile, "PNG");
@@ -109,7 +110,7 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     if (!success) {
         iconFile.remove();
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut."));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut."), "error");
         return false;
     }
 
@@ -127,7 +128,7 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     QFile iconFile(iconPath);
     if (!iconFile.open(QFile::WriteOnly)) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut: %1").arg(iconFile.errorString()));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut: %1").arg(iconFile.errorString()), "error");
         return false;
     }
     bool success = icon->icon().pixmap(64, 64).save(&iconFile, "ICO");
@@ -138,12 +139,12 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 
     if (!success) {
         iconFile.remove();
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut."));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Failed to create icon for shortcut."), "error");
         return false;
     }
 
 #else
-    QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Not supported on your platform!"));
+    interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Not supported on your platform!"), "error");
     return false;
 #endif
     args.append({ "--launch", shortcut.instance->uuid() });
@@ -154,8 +155,8 @@ bool createInstanceShortcut(const Shortcut& shortcut, const QString& filePath)
 #if not defined(Q_OS_MACOS)
         iconFile.remove();
 #endif
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"),
-                              QObject::tr("Failed to create %1 shortcut!").arg(shortcut.targetString));
+        interaction::notify(QObject::tr("Create Shortcut"),
+                              QObject::tr("Failed to create %1 shortcut!").arg(shortcut.targetString), "error");
         return false;
     }
 
@@ -170,15 +171,15 @@ bool createInstanceShortcutOnDesktop(const Shortcut& shortcut)
 
     QString desktopDir = FS::getDesktopDir();
     if (desktopDir.isEmpty()) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Couldn't find desktop?!"));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Couldn't find desktop?!"), "error");
         return false;
     }
 
     QString shortcutFilePath = FS::PathCombine(desktopDir, FS::RemoveInvalidFilenameChars(shortcut.name));
     if (!createInstanceShortcut(shortcut, shortcutFilePath))
         return false;
-    QMessageBox::information(shortcut.parent, QObject::tr("Create Shortcut"),
-                             QObject::tr("Created a shortcut to this %1 on your desktop!").arg(shortcut.targetString));
+    interaction::notify(QObject::tr("Create Shortcut"),
+                             QObject::tr("Created a shortcut to this %1 on your desktop!").arg(shortcut.targetString), "info");
     return true;
 }
 
@@ -189,7 +190,7 @@ bool createInstanceShortcutInApplications(const Shortcut& shortcut)
 
     QString applicationsDir = FS::getApplicationsDir();
     if (applicationsDir.isEmpty()) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"), QObject::tr("Couldn't find applications folder?!"));
+        interaction::notify(QObject::tr("Create Shortcut"), QObject::tr("Couldn't find applications folder?!"), "error");
         return false;
     }
 
@@ -198,8 +199,8 @@ bool createInstanceShortcutInApplications(const Shortcut& shortcut)
 
     QDir applicationsDirQ(applicationsDir);
     if (!applicationsDirQ.mkpath(".")) {
-        QMessageBox::critical(shortcut.parent, QObject::tr("Create Shortcut"),
-                              QObject::tr("Failed to create instances folder in applications folder!"));
+        interaction::notify(QObject::tr("Create Shortcut"),
+                              QObject::tr("Failed to create instances folder in applications folder!"), "error");
         return false;
     }
 #endif
@@ -207,8 +208,8 @@ bool createInstanceShortcutInApplications(const Shortcut& shortcut)
     QString shortcutFilePath = FS::PathCombine(applicationsDir, FS::RemoveInvalidFilenameChars(shortcut.name));
     if (!createInstanceShortcut(shortcut, shortcutFilePath))
         return false;
-    QMessageBox::information(shortcut.parent, QObject::tr("Create Shortcut"),
-                             QObject::tr("Created a shortcut to this %1 in your applications folder!").arg(shortcut.targetString));
+    interaction::notify(QObject::tr("Create Shortcut"),
+                             QObject::tr("Created a shortcut to this %1 in your applications folder!").arg(shortcut.targetString), "info");
     return true;
 }
 
@@ -231,7 +232,7 @@ bool createInstanceShortcutInOther(const Shortcut& shortcut)
     // workaround to make sure the portal file dialog opens in the desktop directory
     fileDialog.setDirectoryUrl(defaultedDir);
 
-    shortcutFilePath = fileDialog.getSaveFileName(shortcut.parent, QObject::tr("Create Shortcut"), shortcutFilePath,
+    shortcutFilePath = fileDialog.getSaveFileName(nullptr, QObject::tr("Create Shortcut"), shortcutFilePath,
                                                   QObject::tr("Desktop Entries") + " (*" + extension + ")");
     if (shortcutFilePath.isEmpty())
         return false;  // file dialog canceled by user
@@ -240,8 +241,8 @@ bool createInstanceShortcutInOther(const Shortcut& shortcut)
         shortcutFilePath = shortcutFilePath.mid(0, shortcutFilePath.length() - extension.length());
     if (!createInstanceShortcut(shortcut, shortcutFilePath))
         return false;
-    QMessageBox::information(shortcut.parent, QObject::tr("Create Shortcut"),
-                             QObject::tr("Created a shortcut to this %1!").arg(shortcut.targetString));
+    interaction::notify(QObject::tr("Create Shortcut"),
+                             QObject::tr("Created a shortcut to this %1!").arg(shortcut.targetString), "info");
     return true;
 }
 

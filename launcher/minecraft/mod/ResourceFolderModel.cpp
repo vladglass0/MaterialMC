@@ -1,5 +1,4 @@
 #include "ResourceFolderModel.h"
-#include <QMessageBox>
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -27,7 +26,7 @@
 #include "settings/Setting.h"
 #include "tasks/SequentialTask.h"
 #include "tasks/Task.h"
-#include "ui/dialogs/CustomMessageBox.h"
+#include "interaction/UserInteraction.h"
 
 ResourceFolderModel::ResourceFolderModel(const QDir& dir, MinecraftInstance* instance, bool isIndexed, bool createDir, QObject* parent)
     : QAbstractListModel(parent), m_dir(dir), m_instance(instance), m_watcher(this), m_isIndexed(isIndexed)
@@ -274,14 +273,13 @@ void ResourceFolderModel::deleteMetadata(const QModelIndexList& indexes)
 bool ResourceFolderModel::setResourceEnabled(const QModelIndexList& indexes, EnableAction action)
 {
     if (m_instance != nullptr && m_instance->isRunning()) {
-        auto response =
-            CustomMessageBox::selectable(nullptr, tr("Confirm toggle"),
-                                         tr("If you enable/disable this resource while the game is running it may crash your game.\n"
-                                            "Are you sure you want to do this?"),
-                                         QMessageBox::Warning, QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
-                ->exec();
+        const bool confirmed =
+            interaction::confirm(tr("Confirm toggle"),
+                                 tr("If you enable/disable this resource while the game is running it may crash your game.\n"
+                                    "Are you sure you want to do this?"),
+                                 "warning");
 
-        if (response != QMessageBox::Yes) {
+        if (!confirmed) {
             return false;
         }
     }

@@ -45,7 +45,7 @@
 
 #include "net/NetJob.h"
 
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 class FlameCreationTask final : public InstanceTask {
     Q_OBJECT

@@ -440,6 +440,14 @@ void TranslationsModel::setUseSystemLocale(const bool useSystemLocale) const
     QLocale::setDefault(useSystemLocale ? QLocale::system() : QLocale(selectedLanguage()));
 }
 
+QString TranslationsModel::rawTranslation(const char* context, const QString& source, int n) const
+{
+    if (!d->m_appTranslator) {
+        return {};
+    }
+    return d->m_appTranslator->translate(context, source.toUtf8().constData(), nullptr, n);
+}
+
 bool TranslationsModel::selectLanguage(QString key) const
 {
     QString& langCode = key;

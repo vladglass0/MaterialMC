@@ -59,7 +59,7 @@
 
 #include "Application.h"
 #include "BuildConfig.h"
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 namespace {
 bool isPathTraversal(const QString& basePath, const QString& entryName)
@@ -834,15 +834,10 @@ void PackInstallTask::downloadMods()
 
         qWarning() << "Blocked mods found, displaying mod list";
 
-        BlockedModsDialog messageDialog(nullptr, tr("Blocked mods found"),
-                                        tr("The following files are not available for download in third party launchers.<br/>"
-                                           "You will need to manually download them and add them to the instance."),
-                                        mods, "md5");
-
-        messageDialog.setModal(true);
-
-        if (messageDialog.exec() != 0) {
-            qDebug() << "Post dialog blocked mods list:" << mods;
+        if (interaction::resolveBlockedMods(tr("Blocked mods found"),
+                                            tr("The following files are not available for download in third party launchers.<br/>"
+                                               "You will need to manually download them and add them to the instance."),
+                                            mods, "md5")) {
             for (const auto& blocked : mods) {
                 if (!blocked.matched) {
                     qDebug() << blocked.name << "was not matched to a local file, skipping copy";

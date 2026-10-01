@@ -38,6 +38,7 @@
  */
 
 #include "ResourcePage.h"
+#include "settings/SettingsObject.h"
 #include "modplatform/ModIndex.h"
 #include "ui_ResourcePage.h"
 

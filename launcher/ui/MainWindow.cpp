@@ -292,7 +292,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         // do not show ugly blue border on the mac
         view->setAttribute(Qt::WA_MacShowFocusRect, false);
         connect(delegate, &ListViewDelegate::textChanged, this, [this](QString before, QString after) {
-            if (auto newRoot = askToUpdateInstanceDirName(m_selectedInstance, before, after, this); !newRoot.isEmpty()) {
+            if (auto newRoot = askToUpdateInstanceDirName(m_selectedInstance, before, after); !newRoot.isEmpty()) {
                 auto oldID = m_selectedInstance->id();
                 auto newID = QFileInfo(newRoot).fileName();
                 QString origGroup(APPLICATION->instances()->getInstanceGroup(oldID));
@@ -1535,7 +1535,7 @@ void MainWindow::on_actionDeleteInstance_triggered()
     if (response != QMessageBox::Yes)
         return;
 
-    if (!checkLinkedInstances(id, this, tr("Deleting")))
+    if (!checkLinkedInstances(id, tr("Deleting")))
         return;
 
     if (APPLICATION->instances()->trashInstance(id)) {
@@ -1745,35 +1745,7 @@ void MainWindow::selectionBad()
 
 void MainWindow::checkInstancePathForProblems()
 {
-    QString instanceFolder = APPLICATION->settings()->get("InstanceDir").toString();
-    if (FS::checkProblemticPathJava(QDir(instanceFolder))) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder contains \'!\' and this is known to cause Java problems!"));
-        warning.setInformativeText(tr("You have now two options: <br/>"
-                                      " - change the instance folder in the settings <br/>"
-                                      " - move this installation of %1 to a different folder")
-                                       .arg(BuildConfig.LAUNCHER_DISPLAYNAME));
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    }
-    auto tempFolderText =
-        tr("This is a problem: <br/>"
-           " - The launcher will likely be deleted without warning by the operating system <br/>"
-           " - close the launcher now and extract it to a real location, not a temporary folder");
-    QString pathfoldername = QDir(instanceFolder).absolutePath();
-    if (pathfoldername.contains("Rar$", Qt::CaseInsensitive)) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder contains \'Rar$\' - that means you haven't extracted the launcher archive!"));
-        warning.setInformativeText(tempFolderText);
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    } else if (pathfoldername.startsWith(QDir::tempPath()) || pathfoldername.contains("/TempState/")) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder is in a temporary folder: \'%1\'!").arg(QDir::tempPath()));
-        warning.setInformativeText(tempFolderText);
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    }
+    ::checkInstancePathForProblems();
 }
 
 void MainWindow::updateStatusCenter()

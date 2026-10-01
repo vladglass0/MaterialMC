@@ -18,6 +18,7 @@
 #include "SystemApi.h"
 
 #include <QClipboard>
+#include <QCoreApplication>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -32,6 +33,7 @@
 #include "FileSystem.h"
 #include "InstanceList.h"
 #include "icons/IconList.h"
+#include "icons/IconUtils.h"
 #include "minecraft/MinecraftInstance.h"
 #include "settings/SettingsObject.h"
 
@@ -57,6 +59,15 @@ QString resolveFolderTarget(const QString& target, MinecraftInstance* instance)
     }
     if (target == QLatin1String("java")) {
         return APPLICATION->javaPath();
+    }
+    if (target == QLatin1String("mods")) {
+        return APPLICATION->settings()->get("CentralModsDir").toString();
+    }
+    if (target == QLatin1String("skins")) {
+        return APPLICATION->settings()->get("SkinsDir").toString();
+    }
+    if (target == QLatin1String("catpacks")) {
+        return FS::PathCombine(APPLICATION->dataRoot(), "catpacks");
     }
     if (!target.startsWith(QLatin1String("instance"))) {
         throw ApiError::invalidParams(QObject::tr("Unknown folder '%1'").arg(target));
@@ -90,6 +101,24 @@ QString resolveFolderTarget(const QString& target, MinecraftInstance* instance)
     }
     if (target == QLatin1String("instance.logs")) {
         return FS::PathCombine(instance->gameRoot(), "logs");
+    }
+    if (target == QLatin1String("instance.crashreports")) {
+        return FS::PathCombine(instance->gameRoot(), "crash-reports");
+    }
+    if (target == QLatin1String("instance.config")) {
+        return FS::PathCombine(instance->gameRoot(), "config");
+    }
+    if (target == QLatin1String("instance.libraries")) {
+        return instance->getLocalLibraryPath();
+    }
+    if (target == QLatin1String("instance.coremods")) {
+        return instance->coreModsDir();
+    }
+    if (target == QLatin1String("instance.nilmods")) {
+        return instance->nilModsDir();
+    }
+    if (target == QLatin1String("instance.datapacks")) {
+        return instance->dataPacksDir();
     }
     throw ApiError::invalidParams(QObject::tr("Unknown folder '%1'").arg(target));
 }
@@ -183,11 +212,52 @@ void registerSystemApi(ApiRouter* router, TaskTracker* tasks, const HostInfo& ho
         for (int i = 0; i < icons->rowCount(); i++) {
             const auto index = icons->index(i);
             const auto key = icons->data(index, Qt::UserRole).toString();
+            const auto* icon = icons->icon(key);
+            // Categories of the former IconPickerDialog
+            QString category = "custom";
+            if (icon && icon->isBuiltIn()) {
+                category = icon->name().endsWith("_legacy", Qt::CaseInsensitive) ? "legacy" : "modern";
+            } else if (icon) {
+                static const QStringList s_packPrefixes{ "curseforge_", "modrinth_", "ftb_", "technic_", "atl_" };
+                for (const auto& prefix : s_packPrefixes) {
+                    if (icon->name().startsWith(prefix, Qt::CaseInsensitive)) {
+                        category = "modpack";
+                    }
+                }
+            }
             out.append(QJsonObject{ { "key", key },
                                     { "name", icons->data(index, Qt::DisplayRole).toString() },
-                                    { "url", hostResourceUrl({ "_icon", key }) } });
+                                    { "url", hostResourceUrl({ "_icon", key }) },
+                                    { "category", category },
+                                    { "removable", icons->iconFileExists(key) } });
         }
         return out;
+    });
+
+    {
+        auto* icons = APPLICATION->icons();
+        const auto changed = [router] { router->emitEvent("icons.changed"); };
+        QObject::connect(icons, &QAbstractItemModel::rowsInserted, router, changed);
+        QObject::connect(icons, &QAbstractItemModel::rowsRemoved, router, changed);
+        QObject::connect(icons, &QAbstractItemModel::modelReset, router, changed);
+    }
+    router->addSync("icons.add", [](const QJsonObject&) {
+        // Files are picked natively; the page never supplies paths.
+        const auto files = QFileDialog::getOpenFileNames(nullptr, QCoreApplication::translate("IconPickerDialog", "Select Icons"), QString(),
+                                                         QCoreApplication::translate("IconPickerDialog", "Icons %1").arg(IconUtils::getIconFilter()));
+        APPLICATION->icons()->installIcons(files);
+        return QJsonObject{ { "added", static_cast<int>(files.size()) } };
+    });
+    router->addSync("icons.remove", [](const QJsonObject& p) {
+        const auto key = params::requireNonEmpty(p, "key", 256);
+        auto* icons = APPLICATION->icons();
+        if (!icons->iconFileExists(key)) {
+            throw ApiError::notFound(QObject::tr("Icon '%1' cannot be removed").arg(key));
+        }
+        if (!icons->trashIcon(key)) {
+            icons->deleteIcon(key);
+        }
+        return ok();
     });
 
     router->addSync("tasks.list", [tasks](const QJsonObject&) { return tasks->list(); });

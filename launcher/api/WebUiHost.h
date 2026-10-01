@@ -31,9 +31,13 @@ struct Response;
 namespace api {
 class AccountApi;
 class ApiRouter;
+class ComponentApi;
 class ConsoleApi;
 class InstanceApi;
+class I18nApi;
 class ModApi;
+class ModpackApi;
+class PromptApi;
 class ResourceApi;
 class SettingsApi;
 class TaskTracker;
@@ -75,7 +79,11 @@ class WebUiHost : public QObject {
     std::unique_ptr<api::ResourceApi> m_resources;
     std::unique_ptr<api::AccountApi> m_accounts;
     std::unique_ptr<api::ModApi> m_mods;
+    std::unique_ptr<api::ModpackApi> m_modpacks;
     std::unique_ptr<api::SettingsApi> m_settings;
+    std::unique_ptr<api::PromptApi> m_prompts;
+    std::unique_ptr<api::I18nApi> m_i18n;
+    std::unique_ptr<api::ComponentApi> m_components;
     QObject m_context;
     QHash<QString, QByteArray> m_imageCache;
 };

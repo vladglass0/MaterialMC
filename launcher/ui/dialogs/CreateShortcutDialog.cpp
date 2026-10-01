@@ -211,7 +211,7 @@ void CreateShortcutDialog::createShortcut()
     if (ui->overrideAccountCheckbox->isChecked())
         extraArgs.append({ "--profile", ui->accountSelectionBox->currentData().toString() });
 
-    ShortcutUtils::Shortcut args{ m_instance, name, targetString, this, extraArgs, InstIconKey, target };
+    ShortcutUtils::Shortcut args{ m_instance, name, targetString, extraArgs, InstIconKey, target };
     if (target == ShortcutTarget::Desktop)
         ShortcutUtils::createInstanceShortcutOnDesktop(args);
     else if (target == ShortcutTarget::Applications)

@@ -5,8 +5,10 @@ import { checkContract, materialmc } from "./api/client";
 import "@fontsource-variable/roboto-flex/wght.css";
 import "./styles/global.css";
 import { initTheme } from "./theme/theme";
+import { loadTranslations } from "./i18n";
 
 initTheme();
+void loadTranslations();
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>

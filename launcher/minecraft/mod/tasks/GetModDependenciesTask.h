@@ -32,7 +32,6 @@
 #include "modplatform/modrinth/ModrinthAPI.h"
 #include "tasks/SequentialTask.h"
 #include "tasks/Task.h"
-#include "ui/pages/modplatform/ModModel.h"
 
 class GetModDependenciesTask : public SequentialTask {
     Q_OBJECT

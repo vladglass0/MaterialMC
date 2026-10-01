@@ -1,20 +1,27 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { isMaterialMCError } from "../types/common";
+import { t } from "../i18n";
 import { mdiAlertCircleOutline, mdiCheckCircleOutline, mdiClose, mdiInformationOutline } from "@mdi/js";
 import { Icon } from "./Icon";
 
 type ToastKind = "error" | "success" | "info";
+
+export interface ToastAction {
+  label: string;
+  onClick(): void;
+}
 
 interface Toast {
   id: number;
   kind: ToastKind;
   message: string;
   code?: string;
+  action?: ToastAction;
 }
 
 interface ToastApi {
   showError(error: unknown, context?: string): void;
-  notify(message: string, kind?: ToastKind): void;
+  notify(message: string, kind?: ToastKind, action?: ToastAction): void;
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -30,13 +37,13 @@ let nextId = 1;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const dismiss = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), []);
+  const dismiss = useCallback((id: number) => setToasts((list) => list.filter((x) => x.id !== id)), []);
 
   const push = useCallback(
     (toast: Omit<Toast, "id">) => {
       const id = nextId++;
       setToasts((list) => [...list.slice(-4), { ...toast, id }]);
-      window.setTimeout(() => dismiss(id), toast.kind === "error" ? 9000 : 4000);
+      window.setTimeout(() => dismiss(id), toast.kind === "error" || toast.action ? 9000 : 4000);
     },
     [dismiss],
   );
@@ -48,8 +55,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         if (code === "CANCELLED") return;
         push({ kind: "error", message: context ? `${context}: ${message}` : message, code });
       },
-      notify(message, kind = "info") {
-        push({ kind, message });
+      notify(message, kind = "info", action) {
+        push({ kind, message, action });
       },
     }),
     [push],
@@ -59,14 +66,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div className="toasts" role="status" aria-live="polite">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.kind}`}>
-            <Icon className="lead" size={20} path={t.kind === "error" ? mdiAlertCircleOutline : t.kind === "success" ? mdiCheckCircleOutline : mdiInformationOutline} />
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast ${toast.kind}`}>
+            <Icon
+              className="lead"
+              size={20}
+              path={toast.kind === "error" ? mdiAlertCircleOutline : toast.kind === "success" ? mdiCheckCircleOutline : mdiInformationOutline}
+            />
             <div className="grow">
-              <div>{t.message}</div>
-              {t.code && <div className="code">{t.code}</div>}
+              <div>{toast.message}</div>
+              {toast.code && <div className="code">{toast.code}</div>}
             </div>
-            <button className="btn ghost small icon-only" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
+            {toast.action && (
+              <button
+                className="btn ghost small"
+                onClick={() => {
+                  dismiss(toast.id);
+                  toast.action?.onClick();
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
+            <button className="btn ghost small icon-only" aria-label={t("Dismiss")} onClick={() => dismiss(toast.id)}>
               <Icon path={mdiClose} />
             </button>
           </div>

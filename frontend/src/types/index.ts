@@ -1,10 +1,12 @@
 export * from "./common";
 export type * from "./accounts";
+export type * from "./components";
 export type * from "./console";
 export type * from "./events";
 export type * from "./instances";
 export type * from "./methods";
 export type * from "./mods";
+export type * from "./prompts";
 export type * from "./resources";
 export type * from "./settings";
 export type * from "./system";

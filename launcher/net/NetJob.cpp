@@ -43,7 +43,11 @@
 #include <QApplication>
 #include "Application.h"
 #include "settings/SettingsObject.h"
-#include "ui/dialogs/NetworkJobFailedDialog.h"
+#include "interaction/UserInteraction.h"
+
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QPointer>
 #endif
 
 NetJob::NetJob(QString job_name, QNetworkAccessManager* network, int max_concurrent) : ConcurrentTask(job_name), m_network(network)
@@ -175,24 +179,50 @@ void NetJob::emitFailed(QString reason)
     if (APPLICATION_DYN && m_ask_retry && m_manual_try < APPLICATION->settings()->get("NumberOfManualRetries").toInt() && isOnline()) {
         m_manual_try++;
         auto failed = getFailedActions();
-        QWidget* activeWindow = QApplication::activeWindow();
-        auto dialog = new NetworkJobFailedDialog(objectName(), m_try, m_done.size(), failed.size(), activeWindow);
-        dialog->setAttribute(Qt::WA_DeleteOnClose);
-
+        const int requests = static_cast<int>(m_done.size());
+        QString countText;
+        if (failed.size() == requests) {
+            countText = QCoreApplication::translate("NetworkJobFailedDialog", "All %1 requests have failed after %2 attempts")
+                            .arg(failed.size())
+                            .arg(m_try);
+        } else if (failed.size() < requests / 2) {
+            countText = QCoreApplication::translate("NetworkJobFailedDialog", "Out of %1 requests, %2 have failed after %3 attempts")
+                            .arg(requests)
+                            .arg(failed.size())
+                            .arg(m_try);
+        } else {
+            countText = QCoreApplication::translate("NetworkJobFailedDialog", "Out of %1 requests, only %2 succeeded after %3 attempts")
+                            .arg(requests)
+                            .arg(requests - failed.size())
+                            .arg(m_try);
+        }
+        QJsonArray failedJson;
         for (const auto& request : failed) {
-            dialog->addFailedRequest(request->url(), request->errorString());
+            failedJson.append(QJsonObject{ { "url", request->url().toString() }, { "error", request->errorString() } });
         }
 
-        dialog->open();
+        interaction::Prompt prompt;
+        prompt.kind = "networkFailed";
+        prompt.title = QCoreApplication::translate("NetworkJobFailedDialog", "Network error");
+        prompt.text = QCoreApplication::translate("NetworkJobFailedDialog", "A network operation has failed: %1").arg(objectName()) + "\n" +
+                      countText + "\n" + QCoreApplication::translate("NetworkJobFailedDialog", "What would you like to do?");
+        prompt.icon = "error";
+        prompt.buttons = { interaction::reject(tr("Abort")), interaction::accept(tr("Retry"), "retry") };
+        prompt.defaultButton = "retry";
+        prompt.payload = { { "failed", failedJson } };
 
-        connect(dialog, &QDialog::finished, this, [this, reason = std::move(reason)](int result) {
-            if (result == QDialog::Accepted) {
-                m_try = 0;
-                executeNextSubTask();
-            } else {
-                ConcurrentTask::emitFailed(reason);
-            }
-        });
+        interaction::UserInteraction::instance()->ask(
+            prompt, [this, guard = QPointer<NetJob>(this), reason = std::move(reason)](const interaction::Answer& answer) {
+                if (!guard) {
+                    return;
+                }
+                if (answer.is("retry")) {
+                    m_try = 0;
+                    executeNextSubTask();
+                } else {
+                    ConcurrentTask::emitFailed(reason);
+                }
+            });
 
         return;
     }

@@ -198,6 +198,7 @@ through `system.methods`, and the frontend warns about drift at start-up when se
 | accounts | `list`, `loginMsa`, `cancelLogin`, `addOffline`, `remove`, `setDefault`, `refresh` |
 | versions / java | `versions.minecraft`, `versions.loaders`, `java.list` |
 | mods | `search`, `versions`, `install` |
+| modpacks | `search`, `versions`, `install`, `importFile`, `importUrl` (Modrinth / CurseForge; native archive picker or HTTP(S) import) |
 | settings | `get`, `set` |
 | tasks | `list`, `cancel`, `clearFinished` |
 | console | `get`, `launcherLog` |
@@ -409,14 +410,19 @@ Use a separate data directory while developing: `./build/materialmc -d /path/to/
 These flows still use the Qt Widgets GUI (either via `--qt-gui` or because the backend opens the Qt
 dialog), and block phase 4:
 
-* Importing modpacks (CurseForge, Modrinth, ATLauncher, FTB, Technic, zip files, URL/drag & drop) —
-  imports open the Qt main window with the existing dialogs (`TODO(webui)` in `Application.cpp`).
+* Modpack parity is in progress: the React create-instance page supports Modrinth/CurseForge search,
+  version selection and installation, plus ZIP/`.mrpack` import through a native file picker or
+  HTTP(S) download URL. Managed-pack updates, URL schemes and native drag & drop still use the Qt
+  flows (`TODO(webui)` in `Application.cpp`). FTB (including legacy/App), Technic and ATLauncher
+  are excluded from further React migration at the user's request; their existing Qt flows remain.
 * Export (zip, `.mrpack`, CurseForge), shortcuts, linked instances.
-* Component editor (change Minecraft/loader version, add/remove components) — the web UI shows the
-  component list read-only.
+* Component editing is available in the React Version tab (Minecraft/loader versions,
+  add/remove/move, enable, customize/revert, file imports and downloads); exhaustive parity testing
+  and removal of the Qt editor remain pending.
 * Mod updates, dependency resolution when installing, blocked-mods handling, metadata indexing UI.
 * Skins, Minecraft profile creation (`ACCOUNT_NEEDS_PROFILE` points the user to minecraft.net).
 * Proxy settings, themes, language, API keys, external tools / profilers, updater UI, news.
 * First-run setup wizard (language, Java) is still the Qt wizard.
 * Windows (WebView2) and macOS (WKWebView) backends.
-* Translations: the web UI is English only.
+* Translations: migrated screens reuse Prism catalogs through `i18n.*`; older screens still contain
+  untranslated English strings.

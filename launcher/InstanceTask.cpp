@@ -5,52 +5,43 @@
 #include "Application.h"
 #include "minecraft/MinecraftInstance.h"
 #include "minecraft/MinecraftLoadAndCheck.h"
+#include "minecraft/PackProfile.h"
 #include "settings/SettingsObject.h"
 #include "tasks/SequentialTask.h"
-#include "ui/dialogs/CustomMessageBox.h"
+#include "interaction/UserInteraction.h"
 
-#include <QPushButton>
-
-InstanceNameChange askForChangingInstanceName(QWidget* parent, const QString& oldName, const QString& newName)
+InstanceNameChange askForChangingInstanceName(QWidget* /*parent*/, const QString& oldName, const QString& newName)
 {
-    auto* dialog =
-        CustomMessageBox::selectable(parent, QObject::tr("Change instance name"),
-                                     QObject::tr("The instance's name seems to include the old version. Would you like to update it?\n\n"
-                                                 "Old name: %1\n"
-                                                 "New name: %2")
-                                         .arg(oldName, newName),
-                                     QMessageBox::Question, QMessageBox::No | QMessageBox::Yes);
-    auto result = dialog->exec();
-
-    if (result == QMessageBox::Yes) {
-        return InstanceNameChange::ShouldChange;
-    }
-    return InstanceNameChange::ShouldKeep;
+    const bool change =
+        interaction::confirm(QObject::tr("Change instance name"),
+                             QObject::tr("The instance's name seems to include the old version. Would you like to update it?\n\n"
+                                         "Old name: %1\n"
+                                         "New name: %2")
+                                 .arg(oldName, newName));
+    return change ? InstanceNameChange::ShouldChange : InstanceNameChange::ShouldKeep;
 }
 
-ShouldUpdate askIfShouldUpdate(QWidget* parent, const QString& originalVersionName)
+ShouldUpdate askIfShouldUpdate(QWidget* /*parent*/, const QString& originalVersionName)
 {
     if (APPLICATION->settings()->get("SkipModpackUpdatePrompt").toBool()) {
         return ShouldUpdate::SkipUpdating;
     }
 
-    auto* info = CustomMessageBox::selectable(
-        parent, QObject::tr("Similar modpack was found!"),
+    const auto answer = interaction::message(
+        QObject::tr("Similar modpack was found!"),
         QObject::tr(
             "One or more of your instances are from this same modpack%1. Do you want to create a "
             "separate instance, or update the existing one?\n\nNOTE: Make sure you made a backup of your important instance data before "
             "updating, as worlds can be corrupted and some configuration may be lost (due to pack overrides).")
             .arg(originalVersionName),
-        QMessageBox::Information, QMessageBox::Cancel);
-    QAbstractButton* update = info->addButton(QObject::tr("Update existing instance"), QMessageBox::AcceptRole);
-    QAbstractButton* skip = info->addButton(QObject::tr("Create new instance"), QMessageBox::ResetRole);
+        "info",
+        { interaction::reject(QObject::tr("Cancel")), interaction::neutral(QObject::tr("Create new instance"), "skip"),
+          interaction::accept(QObject::tr("Update existing instance"), "update") });
 
-    info->exec();
-
-    if (info->clickedButton() == update) {
+    if (answer.is("update")) {
         return ShouldUpdate::Update;
     }
-    if (info->clickedButton() == skip) {
+    if (answer.is("skip")) {
         return ShouldUpdate::SkipUpdating;
     }
     return ShouldUpdate::Cancel;
@@ -99,14 +90,12 @@ void InstanceTask::setOverride(bool override, const QString& instanceIdToOverrid
     }
 }
 
-ShouldDeleteSaves askIfShouldDeleteSaves(QWidget* parent)
+ShouldDeleteSaves askIfShouldDeleteSaves(QWidget* /*parent*/)
 {
-    auto* dialog = CustomMessageBox::selectable(parent, QObject::tr("Delete Existing Save Files"),
-                                                QObject::tr("An earlier version of this mod pack installed save files.\n"
-                                                            "Would you like to remove those existing saves as part of this update?"),
-                                                QMessageBox::Question, QMessageBox::No | QMessageBox::Yes);
-    auto result = dialog->exec();
-    return result == QMessageBox::Yes ? ShouldDeleteSaves::Yes : ShouldDeleteSaves::No;
+    const bool remove = interaction::confirm(QObject::tr("Delete Existing Save Files"),
+                                             QObject::tr("An earlier version of this mod pack installed save files.\n"
+                                                         "Would you like to remove those existing saves as part of this update?"));
+    return remove ? ShouldDeleteSaves::Yes : ShouldDeleteSaves::No;
 }
 
 void InstanceTask::scheduleToDelete(QWidget* parent, const QDir& dir, const QString& path, bool checkDisabled)
@@ -135,8 +124,17 @@ void InstanceTask::scheduleToDelete(QWidget* parent, const QDir& dir, const QStr
 
 void InstanceTask::downloadFiles(MinecraftInstance* inst)
 {
-    if (!APPLICATION->settings()->get("DownloadGameFilesDuringInstanceCreation").toBool()) {
+    auto finishCreation = [this, inst] {
+        // Success commits the staging directory synchronously, before the instance is destroyed.
+        auto* profile = inst->getPackProfile();
+        if (!profile->saveNow()) {
+            emitFailed(tr("Could not save the instance's component list."));
+            return;
+        }
         emitSucceeded();
+    };
+    if (!APPLICATION->settings()->get("DownloadGameFilesDuringInstanceCreation").toBool()) {
+        finishCreation();
         return;
     }
     setAbortable(true);
@@ -145,7 +143,7 @@ void InstanceTask::downloadFiles(MinecraftInstance* inst)
 
     auto updateTasks = inst->createUpdateTask();
     if (updateTasks.isEmpty()) {
-        emitSucceeded();
+        finishCreation();
         return;
     }
     auto task = makeShared<SequentialTask>();
@@ -153,16 +151,14 @@ void InstanceTask::downloadFiles(MinecraftInstance* inst)
     for (const auto& t : updateTasks) {
         task->addTask(t);
     }
-    connect(task.get(), &Task::finished, this, [this, task] {
+    connect(task.get(), &Task::finished, this, [this, task, finishCreation] {
         if (!isRunning()) {
             return;
         }
         if (!task->wasSuccessful()) {
-            CustomMessageBox::selectable(QApplication::activeWindow(), tr("Error"),
-                                         tr("Could not download game files: %1").arg(task->failReason()), QMessageBox::Warning)
-                ->show();
+            interaction::notify(tr("Error"), tr("Could not download game files: %1").arg(task->failReason()), "warning");
         }
-        emitSucceeded();
+        finishCreation();
     });
     propagateFromOther(task.get());
     setDetails(tr("Downloading game files"));

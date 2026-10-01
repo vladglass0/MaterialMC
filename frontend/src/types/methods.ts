@@ -12,6 +12,10 @@ import type { ConsoleLogChunk, ConsoleLogParams } from "./console";
 import type {
   CopyInstanceParams,
   CreateInstanceParams,
+  CreateShortcutParams,
+  InstancesOverview,
+  ProfilerInfo,
+  ShortcutTargets,
   Instance,
   InstanceDetails,
   InstanceId,
@@ -34,9 +38,12 @@ import type {
   Screenshot,
   World,
 } from "./resources";
-import type { LauncherSettings } from "./settings";
+import type { ComponentFileKind, ComponentList, ComponentRef, ComponentVersions } from "./components";
+import type { I18nCatalog, I18nCatalogKey, Prompt, PromptAnswerParams } from "./prompts";
+import type { FileSettingKey, FolderSettingKey, LauncherSettingKey, LauncherSettings } from "./settings";
 import type { IconInfo, OpenFolderParams, SaveTextParams, SystemInfo } from "./system";
 import type { TaskInfo } from "./tasks";
+import type { ModpackImportParams, ModpackInstallParams, ModpackSearchParams, ModpackSearchResult, ModpackVersionsParams } from "./modpacks";
 import type { JavaInstallation, LoaderVersion, LoaderVersionsParams, MinecraftVersion } from "./versions";
 
 type Id = { id: InstanceId };
@@ -52,6 +59,8 @@ export interface MaterialMCMethods {
   "system.copyText": [{ text: string }, Ok];
   "system.saveText": [SaveTextParams, { saved: boolean }];
   "system.icons": [Empty, IconInfo[]];
+  "icons.add": [Empty, { added: number }];
+  "icons.remove": [{ key: string }, Ok];
 
   // instances
   "instances.list": [Empty, Instance[]];
@@ -60,7 +69,17 @@ export interface MaterialMCMethods {
   "instances.create": [CreateInstanceParams, TaskHandle];
   "instances.copy": [CopyInstanceParams, TaskHandle];
   "instances.remove": [Id, Ok];
-  "instances.rename": [Id & { name: string }, Ok];
+  "instances.rename": [Id & { name: string }, Ok & { id: InstanceId }];
+  "instances.renameGroup": [{ group: string; name: string }, Ok];
+  "instances.deleteGroup": [{ group: string }, Ok];
+  "instances.setGroupCollapsed": [{ group: string; collapsed: boolean }, Ok];
+  "instances.overview": [Empty, InstancesOverview];
+  "instances.undoTrash": [Empty, Ok];
+  "instances.profilers": [Id, { selected: string; profilers: ProfilerInfo[] }];
+  "instances.setProfiler": [Id & { profiler: string }, Ok];
+  "instances.shortcutTargets": [Id, ShortcutTargets];
+  "instances.copyInfo": [Id, { cloneSupported: boolean; linkSupported: boolean; filesystem: string }];
+  "instances.createShortcut": [CreateShortcutParams, { created: boolean }];
   "instances.setGroup": [Id & { group: string | null }, Ok];
   "instances.setIcon": [Id & { iconKey: string }, Ok];
   "instances.setNotes": [Id & { notes: string }, Ok];
@@ -68,6 +87,22 @@ export interface MaterialMCMethods {
   "instances.setSettings": [Id & { settings: Partial<InstanceSettings> }, InstanceSettings];
   "instances.launch": [LaunchParams, Ok];
   "instances.kill": [Id, Ok];
+
+  // components (version editor)
+  "components.list": [Id, ComponentList];
+  "components.versions": [ComponentRef & { forceReload?: boolean }, ComponentVersions];
+  "components.setVersion": [ComponentRef & { version: string }, Ok];
+  "components.installLoader": [ComponentRef & { version: string }, Ok];
+  "components.setEnabled": [ComponentRef & { enabled: boolean }, Ok];
+  "components.remove": [ComponentRef, Ok];
+  "components.move": [ComponentRef & { direction: "up" | "down" }, Ok];
+  "components.customize": [ComponentRef, Ok];
+  "components.revert": [ComponentRef, Ok];
+  "components.addEmpty": [ComponentRef & { name: string }, Ok];
+  "components.addFiles": [Id & { kind: ComponentFileKind }, { added: number }];
+  "components.edit": [ComponentRef, Ok];
+  "components.reload": [Id, Ok];
+  "components.downloadAll": [Id, { taskId: string | null }];
 
   // instance content
   "resources.list": [ResourceListParams, Resource[]];
@@ -100,10 +135,18 @@ export interface MaterialMCMethods {
   "mods.search": [ModSearchParams, ModSearchResult];
   "mods.versions": [RemoteVersionsParams, RemoteVersion[]];
   "mods.install": [ModInstallParams, TaskHandle];
+  "modpacks.search": [ModpackSearchParams, ModpackSearchResult];
+  "modpacks.versions": [ModpackVersionsParams, RemoteVersion[]];
+  "modpacks.install": [ModpackInstallParams, TaskHandle];
+  "modpacks.importFile": [ModpackImportParams, TaskHandle];
+  "modpacks.importUrl": [ModpackImportParams & { url: string }, TaskHandle];
 
   // settings
   "settings.get": [Empty, LauncherSettings];
-  "settings.set": [{ values: Partial<LauncherSettings> }, LauncherSettings];
+  "settings.set": [{ values: Partial<Omit<LauncherSettings, "_secretsSet">> }, LauncherSettings];
+  "settings.reset": [{ keys: LauncherSettingKey[] }, LauncherSettings];
+  "settings.pickFolder": [{ key: FolderSettingKey }, { changed: boolean; settings?: LauncherSettings }];
+  "settings.pickFile": [{ key: FileSettingKey }, { changed: boolean; settings?: LauncherSettings }];
 
   // tasks / downloads
   "tasks.list": [Empty, TaskInfo[]];
@@ -113,6 +156,15 @@ export interface MaterialMCMethods {
   // console
   "console.get": [ConsoleLogParams, ConsoleLogChunk];
   "console.launcherLog": [{ from?: number; limit?: number }, Omit<ConsoleLogChunk, "instanceId">];
+
+  // prompts (questions from the backend)
+  "prompts.pending": [Empty, Prompt[]];
+  "prompts.answer": [PromptAnswerParams, Ok];
+  "prompts.action": [{ promptId: number; action: string; data?: Record<string, unknown> }, Ok];
+
+  // translations
+  "i18n.info": [Empty, { language: string; locale: string }];
+  "i18n.catalog": [{ keys: I18nCatalogKey[] }, I18nCatalog];
 }
 
 export type MethodName = keyof MaterialMCMethods;

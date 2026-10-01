@@ -72,6 +72,11 @@ class ApiRouter : public QObject {
 
     void add(const QString& method, Handler handler);
     void addSync(const QString& method, SyncHandler handler);
+    /**
+     * Like addSync(), but the handler runs on the next event loop iteration, outside the WebView message callback.
+     * Use it for handlers that may ask the user something (interaction::UserInteraction::askBlocking spins a nested loop).
+     */
+    void addDeferred(const QString& method, SyncHandler handler);
 
     QStringList methods() const;
 

@@ -18,6 +18,10 @@
 
 #include "GetModDependenciesTask.h"
 
+#include "minecraft/MinecraftInstance.h"
+#include "minecraft/PackProfile.h"
+#include "net/NetJob.h"
+
 #include <QDebug>
 #include <algorithm>
 #include <memory>
@@ -32,7 +36,6 @@
 #include "modplatform/ModIndex.h"
 #include "modplatform/ResourceAPI.h"
 #include "tasks/SequentialTask.h"
-#include "ui/pages/modplatform/ModModel.h"
 
 namespace {
 

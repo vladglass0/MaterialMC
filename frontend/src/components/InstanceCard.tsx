@@ -1,103 +1,108 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { materialmc } from "../api/client";
+import { useSettings } from "../hooks/stores";
+import { t, tn } from "../i18n";
 import type { Instance } from "../types/instances";
-import { formatDuration, formatRelative, LOADER_NAMES, plural } from "./format";
+import { formatDuration, formatRelative, LOADER_NAMES } from "./format";
 import { useInstanceActions } from "./InstanceActions";
-import { MenuButton } from "./Menu";
-import { useToasts } from "./Toasts";
-import { mdiPlay, mdiStop } from "@mdi/js";
+import { MenuButton, useContextMenu } from "./Menu";
+import { mdiChevronDown, mdiPlay, mdiStop } from "@mdi/js";
 import { Icon } from "./Icon";
 
 export function InstanceStateChip({ instance }: { instance: Instance }) {
-  if (instance.state === "running") return <span className="chip ok">Running</span>;
-  if (instance.state === "launching") return <span className="chip info">Launching…</span>;
-  if (instance.hasVersionBroken) return <span className="chip err">Broken version</span>;
-  if (instance.hasCrashed) return <span className="chip warn">Crashed</span>;
+  if (instance.state === "running") return <span className="chip ok">{t("Running")}</span>;
+  if (instance.state === "launching") return <span className="chip info">{t("Launching…")}</span>;
+  if (instance.hasVersionBroken) return <span className="chip err">{t("Broken version")}</span>;
+  if (instance.hasCrashed) return <span className="chip warn">{t("Crashed")}</span>;
   return null;
 }
 
+/** Play / Stop / Cancel button, with the Qt launch menu (offline, demo, launch as, profilers) next to it. */
 export function PlayButton({ instance, small }: { instance: Instance; small?: boolean }) {
   const actions = useInstanceActions();
   const cls = `btn${small ? " small" : ""}`;
   if (instance.state === "running") {
     return (
       <button className={`${cls} danger`} onClick={() => actions.kill(instance)}>
-        <Icon path={mdiStop} /> Stop
+        <Icon path={mdiStop} /> {t("Stop")}
       </button>
     );
   }
   if (instance.state === "launching") {
     return (
-      <button className={cls} onClick={() => actions.kill(instance)} title="Abort the launch">
-        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Cancel
+      <button className={cls} onClick={() => actions.kill(instance)} title={t("Abort the launch")}>
+        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> {t("Cancel")}
       </button>
     );
   }
   return (
-    <button className={`${cls} primary`} disabled={!instance.canLaunch} onClick={() => void actions.launch(instance)}>
-      <Icon path={mdiPlay} /> Play
-    </button>
+    <div className="split-button">
+      <button className={`${cls} primary`} disabled={!instance.canLaunch} onClick={() => void actions.launch(instance)}>
+        <Icon path={mdiPlay} /> {t("Play")}
+      </button>
+      <MenuButton className={`${cls} primary icon-only`} label={t("Launch options")} items={actions.launchMenu(instance)}>
+        <Icon path={mdiChevronDown} size={20} />
+      </MenuButton>
+    </div>
   );
 }
 
-export const InstanceCard = memo(function InstanceCard({ instance }: { instance: Instance }) {
+export const InstanceCard = memo(function InstanceCard({ instance, draggable }: { instance: Instance; draggable?: boolean }) {
   const navigate = useNavigate();
   const actions = useInstanceActions();
-  const { showError } = useToasts();
+  const settings = useSettings();
+  const menu = useContextMenu();
   const open = () => navigate(`/instances/${encodeURIComponent(instance.id)}`);
+  // Qt: double-click launches, or edits when "EditInstanceOnDoubleClick" is set.
+  const activate = () => {
+    if (settings.data?.EditInstanceOnDoubleClick || instance.state !== "stopped" || !instance.canLaunch) open();
+    else void actions.launch(instance);
+  };
 
   return (
-    <article className="instance-card">
-      <div className="head" onClick={open} role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && open()}>
+    <article
+      className="instance-card"
+      onContextMenu={menu.open(actions.instanceMenu(instance))}
+      draggable={draggable}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("application/x-materialmc-instance", instance.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+    >
+      <div
+        className="head"
+        onClick={open}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          activate();
+        }}
+        role="link"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && open()}
+      >
         <img className="icon" src={instance.iconUrl} alt="" loading="lazy" />
         <div className="grow">
           <div className="title ellipsis" title={instance.name}>
             {instance.name}
           </div>
-          <div className="muted small">Minecraft {instance.minecraftVersion ?? "?"}</div>
+          <div className="muted small">{t("Minecraft %1", instance.minecraftVersion ?? "?")}</div>
         </div>
       </div>
       <div className="meta">
-        <span className="chip">{instance.loader ? LOADER_NAMES[instance.loader.kind] : "Vanilla"}</span>
-        {instance.loader && <span className="chip">{plural(instance.modCount, "mod")}</span>}
-        {instance.group && <span className="chip">{instance.group}</span>}
+        <span className="chip">{instance.loader ? LOADER_NAMES[instance.loader.kind] : t("Vanilla")}</span>
+        {instance.loader && <span className="chip">{tn("%n mod(s)", instance.modCount)}</span>}
+        {instance.managedPack && <span className="chip info">{instance.managedPack.name}</span>}
         <InstanceStateChip instance={instance} />
       </div>
       <div className="small muted">
-        Played {formatRelative(instance.lastLaunch)} · {formatDuration(instance.totalPlayTime)}
+        {t("Played %1", formatRelative(instance.lastLaunch))} · {formatDuration(instance.totalPlayTime)}
       </div>
       <div className="foot">
         <PlayButton instance={instance} />
         <div className="grow" />
-        <MenuButton
-          items={[
-            { label: "Open details", onSelect: open },
-            { label: "Edit mods", onSelect: () => navigate(`/instances/${encodeURIComponent(instance.id)}/mods`) },
-            { label: "Console", onSelect: () => navigate(`/console/${encodeURIComponent(instance.id)}`) },
-            {
-              label: "Launch offline…",
-              onSelect: () => actions.askOffline(instance),
-              disabled: instance.state !== "stopped",
-            },
-            {
-              label: "Open folder",
-              separatorBefore: true,
-              onSelect: () =>
-                materialmc.system.openFolder({ target: "instance.game", instanceId: instance.id }).catch((e: unknown) => showError(e)),
-            },
-            { label: "Rename…", onSelect: () => actions.rename(instance) },
-            { label: "Duplicate…", onSelect: () => actions.duplicate(instance) },
-            {
-              label: "Delete…",
-              danger: true,
-              separatorBefore: true,
-              disabled: instance.state !== "stopped",
-              onSelect: () => actions.remove(instance),
-            },
-          ]}
-        />
+        <MenuButton items={actions.instanceMenu(instance)} />
       </div>
+      {menu.element}
     </article>
   );
 });

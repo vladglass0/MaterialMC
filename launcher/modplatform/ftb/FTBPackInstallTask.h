@@ -43,7 +43,7 @@
 #include "QObjectPtr.h"
 #include "modplatform/flame/FileResolvingTask.h"
 #include "net/NetJob.h"
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 #include <QWidget>
 #include <memory>
