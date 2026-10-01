@@ -43,8 +43,8 @@ function Form({ instanceId, initial }: { instanceId: string; initial: InstanceSe
   return (
     <div className="stack">
       <section className="card stack">
-        <label className="check">
-          <input type="checkbox" checked={draft.overrideMemory} onChange={(e) => set("overrideMemory", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.overrideMemory} onChange={(e) => set("overrideMemory", e.target.checked)} />
           <h3>Memory</h3>
         </label>
         <fieldset disabled={!draft.overrideMemory} className="grid-2" style={{ border: "none", padding: 0, margin: 0 }}>
@@ -60,8 +60,8 @@ function Form({ instanceId, initial }: { instanceId: string; initial: InstanceSe
       </section>
 
       <section className="card stack">
-        <label className="check">
-          <input type="checkbox" checked={draft.overrideJavaLocation} onChange={(e) => set("overrideJavaLocation", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.overrideJavaLocation} onChange={(e) => set("overrideJavaLocation", e.target.checked)} />
           <h3>Java installation</h3>
         </label>
         <label className="field">
@@ -69,21 +69,21 @@ function Form({ instanceId, initial }: { instanceId: string; initial: InstanceSe
           <input className="input mono" disabled={!draft.overrideJavaLocation} value={draft.javaPath} onChange={(e) => set("javaPath", e.target.value)} />
           <span className="hint">Changing this requires confirmation in a system dialog.</span>
         </label>
-        <label className="check">
-          <input type="checkbox" checked={draft.overrideJavaArgs} onChange={(e) => set("overrideJavaArgs", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.overrideJavaArgs} onChange={(e) => set("overrideJavaArgs", e.target.checked)} />
           Custom JVM arguments
         </label>
         <textarea className="textarea mono" rows={3} disabled={!draft.overrideJavaArgs} value={draft.jvmArgs} onChange={(e) => set("jvmArgs", e.target.value)} />
       </section>
 
       <section className="card stack">
-        <label className="check">
-          <input type="checkbox" checked={draft.overrideWindow} onChange={(e) => set("overrideWindow", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.overrideWindow} onChange={(e) => set("overrideWindow", e.target.checked)} />
           <h3>Game window</h3>
         </label>
         <fieldset disabled={!draft.overrideWindow} className="stack" style={{ border: "none", padding: 0, margin: 0 }}>
-          <label className="check">
-            <input type="checkbox" checked={draft.launchMaximized} onChange={(e) => set("launchMaximized", e.target.checked)} /> Start maximized
+          <label className="check switch-row">
+            <input type="checkbox" className="switch" checked={draft.launchMaximized} onChange={(e) => set("launchMaximized", e.target.checked)} /> Start maximized
           </label>
           <div className="grid-2">
             <label className="field">
@@ -100,8 +100,8 @@ function Form({ instanceId, initial }: { instanceId: string; initial: InstanceSe
 
       <section className="card stack">
         <h3>Launch</h3>
-        <label className="check">
-          <input type="checkbox" checked={draft.useAccountForInstance} onChange={(e) => set("useAccountForInstance", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.useAccountForInstance} onChange={(e) => set("useAccountForInstance", e.target.checked)} />
           Use a specific account for this instance
         </label>
         <select
@@ -117,8 +117,8 @@ function Form({ instanceId, initial }: { instanceId: string; initial: InstanceSe
             </option>
           ))}
         </select>
-        <label className="check">
-          <input type="checkbox" checked={draft.joinServerOnLaunch} onChange={(e) => set("joinServerOnLaunch", e.target.checked)} />
+        <label className="check switch-row">
+          <input type="checkbox" className="switch" checked={draft.joinServerOnLaunch} onChange={(e) => set("joinServerOnLaunch", e.target.checked)} />
           Join a server on launch
         </label>
         <input

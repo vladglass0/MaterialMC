@@ -8,6 +8,8 @@ import { Empty, QueryView } from "./common";
 import { formatBytes, formatRelative } from "./format";
 import { MenuButton } from "./Menu";
 import { useToasts } from "./Toasts";
+import { mdiPlay } from "@mdi/js";
+import { Icon } from "./Icon";
 
 export function WorldsView({ instanceId, instanceName }: { instanceId: string; instanceName: string }) {
   const query = useQuery(() => materialmc.worlds.list(instanceId), [instanceId]);
@@ -52,7 +54,7 @@ export function WorldsView({ instanceId, instanceName }: { instanceId: string; i
                     </div>
                   </div>
                   <button className="btn small primary" onClick={() => void launchWorld(w)}>
-                    ▶ Join
+                    <Icon path={mdiPlay} /> Join
                   </button>
                   <MenuButton
                     items={[

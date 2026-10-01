@@ -6,6 +6,8 @@ import { Empty, ErrorBanner, Spinner } from "../components/common";
 import { useToasts } from "../components/Toasts";
 import { useInstances } from "../hooks/stores";
 import type { Instance } from "../types/instances";
+import { mdiPlus } from "@mdi/js";
+import { Icon } from "../components/Icon";
 
 type Sort = "name" | "lastLaunch" | "playtime";
 
@@ -60,8 +62,8 @@ export function InstancesPage() {
           >
             Open folder
           </button>
-          <Link className="btn primary" to="/instances/new">
-            + New instance
+          <Link className="btn fab" to="/instances/new">
+            <Icon path={mdiPlus} /> New instance
           </Link>
         </div>
       </div>

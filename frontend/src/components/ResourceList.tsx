@@ -133,6 +133,7 @@ export function ResourceList({ instanceId, kind }: { instanceId: string; kind: R
                   <td>
                     <input
                       type="checkbox"
+                      className="switch"
                       aria-label={r.enabled ? "Disable" : "Enable"}
                       checked={r.enabled}
                       onChange={(e) => void setEnabled([r.id], e.target.checked)}

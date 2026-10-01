@@ -134,13 +134,13 @@ function Overview({ instance, onNavigate }: { instance: Instance; onNavigate(tab
           {details.data && <Info label="Game folder" value={<code className="small">{details.data.gameRoot}</code>} />}
         </dl>
         <div className="row">
-          <button className="btn small" onClick={() => onNavigate("mods")}>
+          <button className="btn small tonal" onClick={() => onNavigate("mods")}>
             {plural(instance.modCount, "mod")}
           </button>
-          <button className="btn small" onClick={() => onNavigate("worlds")}>
+          <button className="btn small tonal" onClick={() => onNavigate("worlds")}>
             Worlds
           </button>
-          <button className="btn small" onClick={() => setIconPicker(true)}>
+          <button className="btn small tonal" onClick={() => setIconPicker(true)}>
             Change icon
           </button>
         </div>
@@ -215,7 +215,7 @@ function IconPicker({ instance, onClose }: { instance: Instance; onClose(): void
           {icons.data.map((icon) => (
             <button
               key={icon.key}
-              className={`btn ghost${icon.key === instance.iconKey ? " primary" : ""}`}
+              className={`btn ${icon.key === instance.iconKey ? "tonal" : "ghost"}`}
               style={{ height: 72, borderRadius: 12 }}
               title={icon.name}
               onClick={() => materialmc.instances.setIcon(instance.id, icon.key).then(onClose, (e: unknown) => showError(e))}

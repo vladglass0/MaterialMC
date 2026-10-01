@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { isMaterialMCError } from "../types/common";
+import { mdiAlertCircleOutline, mdiCheckCircleOutline, mdiClose, mdiInformationOutline } from "@mdi/js";
+import { Icon } from "./Icon";
 
 type ToastKind = "error" | "success" | "info";
 
@@ -59,12 +61,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts" role="status" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`}>
+            <Icon className="lead" size={20} path={t.kind === "error" ? mdiAlertCircleOutline : t.kind === "success" ? mdiCheckCircleOutline : mdiInformationOutline} />
             <div className="grow">
               <div>{t.message}</div>
               {t.code && <div className="code">{t.code}</div>}
             </div>
             <button className="btn ghost small icon-only" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
-              ✕
+              <Icon path={mdiClose} />
             </button>
           </div>
         ))}

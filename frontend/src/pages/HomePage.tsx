@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { InstanceCard } from "../components/InstanceCard";
 import { Empty, ErrorBanner, Spinner, TaskProgress } from "../components/common";
 import { useAccounts, useInstances, useTasks } from "../hooks/stores";
+import { mdiArrowRight, mdiPlus } from "@mdi/js";
+import { Icon } from "../components/Icon";
 
 export function HomePage() {
   const instances = useInstances();
@@ -21,8 +23,8 @@ export function HomePage() {
       <div className="page-header">
         <h1>Home</h1>
         <div className="actions">
-          <Link className="btn primary" to="/instances/new">
-            + New instance
+          <Link className="btn fab" to="/instances/new">
+            <Icon path={mdiPlus} /> New instance
           </Link>
         </div>
       </div>
@@ -64,8 +66,8 @@ export function HomePage() {
       <section className="stack">
         <div className="row">
           <h2 className="grow">Recently played</h2>
-          <Link to="/instances" className="small">
-            All instances →
+          <Link to="/instances" className="btn ghost small">
+            All instances <Icon path={mdiArrowRight} size={18} />
           </Link>
         </div>
         {instances.error ? (
