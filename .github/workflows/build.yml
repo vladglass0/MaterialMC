@@ -123,8 +123,11 @@ jobs:
         env:
           # Fail instead of silently falling back to the Qt-only GUI when the web UI dependencies are missing
           WEBUI_FLAGS: ${{ runner.os == 'Linux' && '-D Launcher_ENABLE_WEBUI=ON' || '' }}
+          # Debug builds go through (s)ccache, which hashes preprocessed output and so ignores comment-only header edits.
+          # A cached precompiled header then carries stale checksums, #pragma once stops matching and headers get included twice.
+          PCH_FLAGS: ${{ env.BUILD_TYPE == 'Debug' && '-D Launcher_USE_PCH=OFF' || '' }}
         run: |
-          cmake --preset "$CMAKE_PRESET" -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET" -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET" $WEBUI_FLAGS
+          cmake --preset "$CMAKE_PRESET" -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET" -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET" $WEBUI_FLAGS $PCH_FLAGS
 
       - name: Run build
         run: |
