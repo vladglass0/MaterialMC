@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -468,7 +468,7 @@ QList<QString> JavaUtils::FindJavaPaths()
     scanJavaDir("/usr/lib", gentooFilter);
     scanJavaDir("/opt", gentooFilter);
     scanJavaDir("/usr/lib", aoscFilter);
-    // javas stored in Prism Launcher's folder
+    // javas stored in MaterialMC's folder
     scanJavaDirs("java");
     // manually installed JDKs in /opt
     scanJavaDirs("/opt/jdk");

@@ -367,7 +367,7 @@ npm install
 npm run dev                      # Vite on http://127.0.0.1:5173 with hot reload
 
 # in another terminal, a Debug build of the launcher:
-MATERIALMC_DEV_URL=http://localhost:5173 ./build/prismlauncher
+MATERIALMC_DEV_URL=http://localhost:5173 ./build/materialmc
 ```
 
 `MATERIALMC_DEV_URL` is compiled in only for Debug builds (or with `Launcher_WEBUI_ALLOW_DEV_URL=ON`),
@@ -384,7 +384,7 @@ Other development variables (Debug builds only):
 | `MATERIALMC_WEBUI_ROUTE=/settings` | open a route directly |
 | `MATERIALMC_QT_GUI=1` / `--qt-gui` | use the Qt Widgets GUI (all builds) |
 
-Use a separate data directory while developing: `./build/prismlauncher -d /path/to/test-data`.
+Use a separate data directory while developing: `./build/materialmc -d /path/to/test-data`.
 
 ## Debugging
 

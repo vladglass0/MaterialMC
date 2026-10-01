@@ -25,7 +25,7 @@ export function AboutPage() {
                 </div>
               </div>
               <p className="muted" style={{ margin: 0 }}>
-                A Minecraft launcher based on Prism Launcher. The interface is a React application rendered by the system WebView; all
+                A Minecraft launcher based on MaterialMC. The interface is a React application rendered by the system WebView; all
                 launcher logic runs in the C++ core.
               </p>
             </section>

@@ -5,6 +5,12 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  push:
+    branches:
+      - "develop"
+      - "release-*"
+      - "feature/**"
+      - "dev/**"
   merge_group:
     types: [checks_requested]
   pull_request:
@@ -27,8 +33,39 @@ on:
 permissions: {}
 
 jobs:
+  matrix:
+    name: Select platforms
+
+    runs-on: ubuntu-24.04
+
+    outputs:
+      include: ${{ steps.select.outputs.include }}
+
+    steps:
+      # Branch pushes only build Linux; PRs, manual runs and releases (tag pushes via workflow_call) build everything
+      - name: Select build matrix
+        id: select
+        env:
+          LINUX_ONLY: ${{ github.event_name == 'push' && github.ref_type == 'branch' }}
+        run: |
+          include='[
+            { "os": "ubuntu-24.04", "artifact-name": "Linux", "cmake-preset": "linux", "qt-version": "6.11.2" },
+            { "os": "ubuntu-24.04-arm", "artifact-name": "Linux-aarch64", "cmake-preset": "linux", "qt-version": "6.11.2" },
+            { "os": "windows-2022", "artifact-name": "Windows-MinGW-w64", "cmake-preset": "windows_mingw", "msystem": "CLANG64", "vcvars-arch": "amd64_x86", "qt-version": "6.11.2" },
+            { "os": "windows-2022", "artifact-name": "Windows-MSVC", "cmake-preset": "windows_msvc", "vcvars-arch": "amd64", "qt-version": "6.11.2" },
+            { "os": "windows-11-arm", "artifact-name": "Windows-MSVC-arm64", "cmake-preset": "windows_msvc", "vcvars-arch": "arm64", "qt-version": "6.11.2" },
+            { "os": "macos-26", "artifact-name": "macOS", "cmake-preset": "macos_universal", "macosx-deployment-target": "13.0", "qt-version": "6.11.2" }
+          ]'
+          # TODO(@getchoo): Windows-MSVC sets vcvars-arch explicitly although amd64 is the default in setup-dependencies/windows. Why isn't it working?!?!
+          if [ "$LINUX_ONLY" = true ]; then
+            include=$(jq '[.[] | select(."artifact-name" == "Linux")]' <<< "$include")
+          fi
+          echo "include=$(jq -c . <<< "$include")" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build (${{ matrix.artifact-name }})
+
+    needs: matrix
 
     environment: ${{ inputs.environment || '' }}
 
@@ -42,42 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            artifact-name: Linux
-            cmake-preset: linux
-            qt-version: 6.11.2
-
-          - os: ubuntu-24.04-arm
-            artifact-name: Linux-aarch64
-            cmake-preset: linux
-            qt-version: 6.11.2
-
-          - os: windows-2022
-            artifact-name: Windows-MinGW-w64
-            cmake-preset: windows_mingw
-            msystem: CLANG64
-            vcvars-arch: amd64_x86
-            qt-version: 6.11.2
-
-          - os: windows-2022
-            artifact-name: Windows-MSVC
-            cmake-preset: windows_msvc
-            # TODO(@getchoo): This is the default in setup-dependencies/windows. Why isn't it working?!?!
-            vcvars-arch: amd64
-            qt-version: 6.11.2
-
-          - os: windows-11-arm
-            artifact-name: Windows-MSVC-arm64
-            cmake-preset: windows_msvc
-            vcvars-arch: arm64
-            qt-version: 6.11.2
-
-          - os: macos-26
-            artifact-name: macOS
-            cmake-preset: macos_universal
-            macosx-deployment-target: 13.0
-            qt-version: 6.11.2
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
 
     runs-on: ${{ matrix.os }}
 

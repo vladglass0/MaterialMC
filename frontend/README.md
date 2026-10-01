@@ -24,7 +24,7 @@ and no data. Start a Debug build of the launcher pointed at the dev server:
 
 ```bash
 npm run dev
-MATERIALMC_DEV_URL=http://localhost:5173 ../build/prismlauncher -d ../build/dev-data
+MATERIALMC_DEV_URL=http://localhost:5173 ../build/materialmc -d ../build/dev-data
 ```
 
 Hot reload works as usual. `MATERIALMC_WEBUI_DEVTOOLS=1` enables the WebKit inspector for the bundled

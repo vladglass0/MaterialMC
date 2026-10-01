@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-only AND Apache-2.0
 
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2022 Lenny McLennington <lenny@sneed.church>
  *  Copyright (C) 2022 Tayou <git@tayou.org>
@@ -469,7 +469,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     m_dataPath = dataPath;
 
     /*
-     * Establish the mechanism for communication with an already running PrismLauncher that uses the same data path.
+     * Establish the mechanism for communication with an already running MaterialMC that uses the same data path.
      * If there is one, tell it what the user actually wanted to do and exit.
      * We want to initialize this before logging to avoid messing with the log of a potential already running copy.
      */
@@ -609,8 +609,13 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 
     {
         auto migrated = handleDataMigration(
-            dataPath, FS::PathCombine(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation), "../../PolyMC"), "PolyMC",
-            "polymc.cfg");
+            dataPath, FS::PathCombine(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation), "../../PrismLauncher"),
+            "Prism Launcher", "prismlauncher.cfg");
+        if (!migrated) {
+            migrated = handleDataMigration(
+                dataPath, FS::PathCombine(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation), "../../PolyMC"), "PolyMC",
+                "polymc.cfg");
+        }
         if (!migrated) {
             handleDataMigration(dataPath,
                                 FS::PathCombine(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation), "../../multimc"),
@@ -1103,9 +1108,9 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 
     // check update locks
     {
-        auto updateLogPath = FS::PathCombine(m_dataPath, "logs", "prism_launcher_update.log");
+        auto updateLogPath = FS::PathCombine(m_dataPath, "logs", "materialmc_update.log");
 
-        auto updateLock = QFileInfo(FS::PathCombine(m_dataPath, ".prism_launcher_update.lock"));
+        auto updateLock = QFileInfo(FS::PathCombine(m_dataPath, ".materialmc_update.lock"));
         if (updateLock.exists()) {
             auto [timestamp, from, to, target, lockDataPath] = readLockFile(updateLock.absoluteFilePath());
             auto infoMsg = tr("This installation has a update lock file present at: %1\n"
@@ -1117,7 +1122,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
                               "\n"
                               "This likely means that a update attempt failed. Please ensure your installation is in working order before "
                               "proceeding.\n"
-                              "Check the Prism Launcher updater log at: \n"
+                              "Check the MaterialMC updater log at: \n"
                               "%7\n"
                               "for details on the last update attempt.\n"
                               "\n"
@@ -1151,13 +1156,13 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
             }
         }
 
-        auto updateFailMarker = QFileInfo(FS::PathCombine(m_dataPath, ".prism_launcher_update.fail"));
+        auto updateFailMarker = QFileInfo(FS::PathCombine(m_dataPath, ".materialmc_update.fail"));
         if (updateFailMarker.exists()) {
             auto infoMsg = tr("An update attempt failed\n"
                               "\n"
                               "Please ensure your installation is in working order before "
                               "proceeding.\n"
-                              "Check the Prism Launcher updater log at: \n"
+                              "Check the MaterialMC updater log at: \n"
                               "%1\n"
                               "for details on the last update attempt.")
                                .arg(updateLogPath);
@@ -1187,12 +1192,12 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
             }
         }
 
-        auto updateSuccessMarker = QFileInfo(FS::PathCombine(m_dataPath, ".prism_launcher_update.success"));
+        auto updateSuccessMarker = QFileInfo(FS::PathCombine(m_dataPath, ".materialmc_update.success"));
         if (updateSuccessMarker.exists()) {
             auto infoMsg = tr("Update succeeded\n"
                               "\n"
                               "You are now running %1 .\n"
-                              "Check the Prism Launcher updater log at: \n"
+                              "Check the MaterialMC updater log at: \n"
                               "%2\n"
                               "for details.")
                                .arg(BuildConfig.printableVersionString())

@@ -24,7 +24,7 @@
   openal,
   pciutils,
   pipewire,
-  prismlauncher-unwrapped,
+  materialmc-unwrapped,
   sdl3,
   stdenv,
   symlinkJoin,
@@ -57,13 +57,13 @@ assert lib.assertMsg (
 ) "textToSpeechSupport only has an effect on Linux.";
 
 let
-  prismlauncher' = prismlauncher-unwrapped.override { inherit msaClientID; };
+  materialmc' = materialmc-unwrapped.override { inherit msaClientID; };
 in
 
 symlinkJoin {
-  name = "prismlauncher-${prismlauncher'.version}";
+  name = "materialmc-${materialmc'.version}";
 
-  paths = [ prismlauncher' ];
+  paths = [ materialmc' ];
 
   nativeBuildInputs = [
     kdePackages.wrapQtAppsHook
@@ -130,8 +130,8 @@ symlinkJoin {
 
     in
     [
-      "--set NIX_LAUNCHER_WRAPPER ${placeholder "out"}/bin/prismlauncher"
-      "--prefix PRISMLAUNCHER_JAVA_PATHS : ${lib.makeSearchPath "bin/java" jdks}"
+      "--set NIX_LAUNCHER_WRAPPER ${placeholder "out"}/bin/materialmc"
+      "--prefix MATERIALMC_JAVA_PATHS : ${lib.makeSearchPath "bin/java" jdks}"
     ]
     ++ lib.optionals stdenv.hostPlatform.isLinux [
       "--set LD_LIBRARY_PATH ${addDriverRunpath.driverLink}/lib:${lib.makeLibraryPath runtimeLibs}"
@@ -139,7 +139,7 @@ symlinkJoin {
     ];
 
   meta = {
-    inherit (prismlauncher'.meta)
+    inherit (materialmc'.meta)
       description
       longDescription
       homepage
