@@ -173,7 +173,7 @@ export function CreateInstancePage() {
             <VirtualList
               items={filtered}
               rowHeight={40}
-              style={{ height: 360, border: "1px solid var(--border)", borderRadius: 8 }}
+              style={{ height: 360, border: "1px solid var(--border)", borderRadius: 12 }}
               getKey={(v) => v.id}
               renderRow={(v) => (
                 <div
@@ -221,7 +221,7 @@ export function CreateInstancePage() {
             <VirtualList
               items={loaderVersions.data ?? []}
               rowHeight={40}
-              style={{ height: 360, border: "1px solid var(--border)", borderRadius: 8 }}
+              style={{ height: 360, border: "1px solid var(--border)", borderRadius: 12 }}
               getKey={(v) => v.version}
               renderRow={(v) => (
                 <div

@@ -6,6 +6,8 @@ import { formatDuration, formatRelative, LOADER_NAMES, plural } from "./format";
 import { useInstanceActions } from "./InstanceActions";
 import { MenuButton } from "./Menu";
 import { useToasts } from "./Toasts";
+import { mdiPlay, mdiStop } from "@mdi/js";
+import { Icon } from "./Icon";
 
 export function InstanceStateChip({ instance }: { instance: Instance }) {
   if (instance.state === "running") return <span className="chip ok">Running</span>;
@@ -21,20 +23,20 @@ export function PlayButton({ instance, small }: { instance: Instance; small?: bo
   if (instance.state === "running") {
     return (
       <button className={`${cls} danger`} onClick={() => actions.kill(instance)}>
-        ■ Stop
+        <Icon path={mdiStop} /> Stop
       </button>
     );
   }
   if (instance.state === "launching") {
     return (
       <button className={cls} onClick={() => actions.kill(instance)} title="Abort the launch">
-        <span className="spinner" style={{ width: 14, height: 14 }} /> Cancel
+        <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Cancel
       </button>
     );
   }
   return (
     <button className={`${cls} primary`} disabled={!instance.canLaunch} onClick={() => void actions.launch(instance)}>
-      ▶ Play
+      <Icon path={mdiPlay} /> Play
     </button>
   );
 }

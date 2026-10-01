@@ -1,6 +1,8 @@
 import { materialmc } from "../api/client";
 import { QueryView } from "../components/common";
 import { useQuery } from "../hooks/useApi";
+import { mdiCube } from "@mdi/js";
+import { Icon } from "../components/Icon";
 
 export function AboutPage() {
   const info = useQuery(() => materialmc.system.info(), []);
@@ -14,7 +16,9 @@ export function AboutPage() {
           <>
             <section className="card stack">
               <div className="row">
-                <div className="brand-mark" style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, var(--primary), #3f7fbf)" }} />
+                <div className="brand-mark" style={{ width: 56, height: 56, borderRadius: 16 }}>
+                  <Icon path={mdiCube} size={32} />
+                </div>
                 <div>
                   <h2>{i.displayName}</h2>
                   <div className="muted">Version {i.version}</div>

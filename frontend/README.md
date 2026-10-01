@@ -39,7 +39,8 @@ src/
 ├── hooks/        useQuery / useEvent, event-driven shared stores, waitForTask
 ├── components/   Layout, dialogs, menus, VirtualList, ConsoleView, ResourceList, ...
 ├── pages/        one component per route
-└── styles/       global.css (design tokens, light/dark via prefers-color-scheme)
+├── theme/        Material 3 dynamic color: generates --md-sys-color-* from a seed color (Settings → Appearance)
+└── styles/       global.css (Material 3 components, type scale, shape and motion tokens)
 ```
 
 ## Rules

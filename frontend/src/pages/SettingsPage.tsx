@@ -4,6 +4,9 @@ import { ErrorBanner, QueryView, Spinner } from "../components/common";
 import { useToasts } from "../components/Toasts";
 import { useEvent, useQuery } from "../hooks/useApi";
 import type { LauncherSettingKey, LauncherSettings } from "../types/settings";
+import { mdiCheck, mdiEyedropper } from "@mdi/js";
+import { Icon } from "../components/Icon";
+import { DEFAULT_SEED, SEED_PRESETS, setThemePrefs, useThemePrefs, type ThemeMode } from "../theme/theme";
 
 type BoolKey = { [K in LauncherSettingKey]: LauncherSettings[K] extends boolean ? K : never }[LauncherSettingKey];
 type NumKey = { [K in LauncherSettingKey]: LauncherSettings[K] extends number ? K : never }[LauncherSettingKey];
@@ -32,8 +35,8 @@ function SettingsForm({ initial }: { initial: LauncherSettings }) {
   const set = <K extends LauncherSettingKey>(k: K, v: LauncherSettings[K]) => setDraft((d) => ({ ...d, [k]: v }));
 
   const bool = (k: BoolKey, label: string) => (
-    <label className="check">
-      <input type="checkbox" checked={draft[k]} onChange={(e) => set(k, e.target.checked)} /> {label}
+    <label className="check switch-row">
+      <input type="checkbox" className="switch" checked={draft[k]} onChange={(e) => set(k, e.target.checked)} /> {label}
     </label>
   );
   const num = (k: NumKey, label: string, hint?: string) => (
@@ -68,6 +71,10 @@ function SettingsForm({ initial }: { initial: LauncherSettings }) {
 
   return (
     <div className="stack">
+      <Section title="Appearance" note="Material You colors are generated from the seed color. Applies immediately to this window.">
+        <AppearancePicker />
+      </Section>
+
       <Section title="Folders">
         <div className="grid-2">
           {str("InstanceDir", "Instances folder", "Relative paths are resolved against the launcher data folder.")}
@@ -125,7 +132,7 @@ function SettingsForm({ initial }: { initial: LauncherSettings }) {
         {/* TODO(webui): proxy settings need Application::updateProxySettings wired through SettingsApi. */}
       </Section>
 
-      <div className="row" style={{ position: "sticky", bottom: 0, background: "var(--bg)", padding: "12px 0" }}>
+      <div className="row" style={{ position: "sticky", bottom: 0, background: "var(--bg)", padding: "12px 0", zIndex: 2 }}>
         <span className="grow muted small">{changed.length > 0 ? `${changed.length} unsaved change(s)` : "All changes saved"}</span>
         <button className="btn" disabled={changed.length === 0 || saving} onClick={() => setDraft(initial)}>
           Revert
@@ -145,6 +152,58 @@ function Section({ title, note, children }: { title: string; note?: string; chil
       {note && <div className="small muted">{note}</div>}
       {children}
     </section>
+  );
+}
+
+const MODES: { value: ThemeMode; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+function AppearancePicker() {
+  const { seed, mode } = useThemePrefs();
+  const custom = !SEED_PRESETS.includes(seed.toLowerCase());
+  return (
+    <>
+      <div className="field">
+        <span>Theme</span>
+        <div className="segmented" role="radiogroup" aria-label="Theme">
+          {MODES.map((m) => (
+            <button key={m.value} role="radio" aria-checked={mode === m.value} className={mode === m.value ? "active" : ""} onClick={() => setThemePrefs({ mode: m.value })}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span>Seed color</span>
+        <div className="swatches" role="radiogroup" aria-label="Seed color">
+          {SEED_PRESETS.map((c) => (
+            <button
+              key={c}
+              role="radio"
+              aria-checked={seed.toLowerCase() === c}
+              aria-label={c}
+              className={`swatch${seed.toLowerCase() === c ? " active" : ""}`}
+              style={{ background: c }}
+              onClick={() => setThemePrefs({ seed: c })}
+            >
+              {seed.toLowerCase() === c && <Icon path={mdiCheck} />}
+            </button>
+          ))}
+          <label className={`swatch custom${custom ? " active" : ""}`} title="Custom color" style={custom ? { background: seed } : undefined}>
+            <Icon path={custom ? mdiCheck : mdiEyedropper} />
+            <input type="color" value={seed} onChange={(e) => setThemePrefs({ seed: e.target.value })} aria-label="Custom seed color" />
+          </label>
+          {seed.toLowerCase() !== DEFAULT_SEED && (
+            <button className="btn ghost small" onClick={() => setThemePrefs({ seed: DEFAULT_SEED })}>
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
