@@ -43,6 +43,12 @@ class TranslationsModel : public QAbstractListModel {
     void downloadIndex();
     void setUseSystemLocale(bool useSystemLocale) const;
 
+    /**
+     * Translation of `source` in `context` from the loaded application language file, without %n substitution
+     * (plural form chosen for `n`). Empty if there is none. Used by the web UI (api/I18nApi).
+     */
+    QString rawTranslation(const char* context, const QString& source, int n = -1) const;
+
    private:
     int columnCount(const QModelIndex& parent) const override;
 

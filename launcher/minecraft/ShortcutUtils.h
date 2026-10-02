@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2023 TheKodeToad <TheKodeToad@proton.me>
  *  Copyright (C) 2025 Yihe Li <winmikedows@hotmail.com>
@@ -40,7 +40,6 @@
 #include "BaseInstance.h"
 
 #include <QList>
-#include <QMessageBox>
 
 namespace ShortcutUtils {
 /// A struct to hold parameters for creating a shortcut
@@ -48,7 +47,6 @@ struct Shortcut {
     BaseInstance* instance;
     QString name;
     QString targetString;
-    QWidget* parent = nullptr;
     QStringList extraArgs = {};
     QString iconKey = "";
     ShortcutTarget target;

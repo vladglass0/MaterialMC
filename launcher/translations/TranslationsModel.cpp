@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (c) 2022 flowln <flowlnlnln@gmail.com>
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *
@@ -438,6 +438,14 @@ void TranslationsModel::setUseSystemLocale(const bool useSystemLocale) const
 {
     APPLICATION->settings()->set("UseSystemLocale", useSystemLocale);
     QLocale::setDefault(useSystemLocale ? QLocale::system() : QLocale(selectedLanguage()));
+}
+
+QString TranslationsModel::rawTranslation(const char* context, const QString& source, int n) const
+{
+    if (!d->m_appTranslator) {
+        return {};
+    }
+    return d->m_appTranslator->translate(context, source.toUtf8().constData(), nullptr, n);
 }
 
 bool TranslationsModel::selectLanguage(QString key) const

@@ -1,8 +1,8 @@
-# Prism Launcher Nix Packaging
+# MaterialMC Nix Packaging
 
 ## Installing a stable release (nixpkgs)
 
-Prism Launcher is packaged in [nixpkgs](https://github.com/NixOS/nixpkgs/) since 22.11.
+MaterialMC is packaged in [nixpkgs](https://github.com/NixOS/nixpkgs/) since 22.11.
 
 Check the [NixOS Wiki](https://wiki.nixos.org/wiki/Prism_Launcher) for up-to-date instructions.
 
@@ -37,10 +37,10 @@ Example:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    prismlauncher = {
+    materialmc = {
       url = "github:PrismLauncher/PrismLauncher";
 
-      # Optional: Override the nixpkgs input of prismlauncher to use the same revision as the rest of your flake
+      # Optional: Override the nixpkgs input of materialmc to use the same revision as the rest of your flake
       # Note that this may break the reproducibility mentioned above, and you might not be able to access the binary cache
       #
       # inputs.nixpkgs.follows = "nixpkgs";
@@ -48,7 +48,7 @@ Example:
   };
 
   outputs =
-    { nixpkgs, prismlauncher, ... }:
+    { nixpkgs, materialmc, ... }:
     {
       nixosConfigurations.foo = nixpkgs.lib.nixosSystem {
         modules = [
@@ -57,7 +57,7 @@ Example:
           (
             { pkgs, ... }:
             {
-              environment.systemPackages = [ prismlauncher.packages.${pkgs.system}.prismlauncher ];
+              environment.systemPackages = [ materialmc.packages.${pkgs.system}.materialmc ];
             }
           )
         ];
@@ -82,10 +82,10 @@ Example:
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    prismlauncher = {
+    materialmc = {
       url = "github:PrismLauncher/PrismLauncher";
 
-      # Optional: Override the nixpkgs input of prismlauncher to use the same revision as the rest of your flake
+      # Optional: Override the nixpkgs input of materialmc to use the same revision as the rest of your flake
       # Note that this may break the reproducibility mentioned above, and you might not be able to access the binary cache
       #
       # inputs.nixpkgs.follows = "nixpkgs";
@@ -93,7 +93,7 @@ Example:
   };
 
   outputs =
-    { nixpkgs, prismlauncher, ... }:
+    { nixpkgs, materialmc, ... }:
     {
       nixosConfigurations.foo = nixpkgs.lib.nixosSystem {
         modules = [
@@ -102,9 +102,9 @@ Example:
           (
             { pkgs, ... }:
             {
-              nixpkgs.overlays = [ prismlauncher.overlays.default ];
+              nixpkgs.overlays = [ materialmc.overlays.default ];
 
-              environment.systemPackages = [ pkgs.prismlauncher ];
+              environment.systemPackages = [ pkgs.materialmc ];
             }
           )
         ];
@@ -158,7 +158,7 @@ Example:
   environment.systemPackages = [
     (import (
       builtins.fetchTarball "https://github.com/PrismLauncher/PrismLauncher/archive/develop.tar.gz"
-    )).packages.${pkgs.system}.prismlauncher
+    )).packages.${pkgs.system}.materialmc
   ];
 }
 ```
@@ -179,7 +179,7 @@ Example:
     )).overlays.default
   ];
 
-  environment.systemPackages = [ pkgs.prismlauncher ];
+  environment.systemPackages = [ pkgs.materialmc ];
 }
 ```
 
@@ -190,23 +190,23 @@ You can add this repository as a channel and install its packages that way.
 Example:
 
 ```shell
-nix-channel --add https://github.com/PrismLauncher/PrismLauncher/archive/develop.tar.gz prismlauncher
+nix-channel --add https://github.com/PrismLauncher/PrismLauncher/archive/develop.tar.gz materialmc
 
-nix-channel --update prismlauncher
+nix-channel --update materialmc
 
-nix-env -iA prismlauncher.prismlauncher
+nix-env -iA materialmc.materialmc
 ```
 
 ## Package variants
 
 Both Nixpkgs and this repository offer the following packages:
 
-- `prismlauncher` - The preferred build, wrapped with everything necessary to run the launcher and Minecraft
-- `prismlauncher-unwrapped` - A minimal build that allows for advanced customization of the launcher's runtime environment
+- `materialmc` - The preferred build, wrapped with everything necessary to run the launcher and Minecraft
+- `materialmc-unwrapped` - A minimal build that allows for advanced customization of the launcher's runtime environment
 
 ### Customizing wrapped packages
 
-The wrapped package (`prismlauncher`) offers some build parameters to further customize the launcher's environment.
+The wrapped package (`materialmc`) offers some build parameters to further customize the launcher's environment.
 
 The following parameters can be overridden:
 
@@ -214,6 +214,6 @@ The following parameters can be overridden:
 - `additionalPrograms` (default: `[ ]`) Additional libraries that will be added to `PATH`
 - `controllerSupport` (default: `isLinux`) Turn on/off support for controllers on Linux (macOS will always have this)
 - `gamemodeSupport` (default: `isLinux`) Turn on/off support for [Feral GameMode](https://github.com/FeralInteractive/gamemode) on Linux
-- `jdks` (default: `[ jdk21 jdk17 jdk8 ]`) Java runtimes added to `PRISMLAUNCHER_JAVA_PATHS` variable
+- `jdks` (default: `[ jdk21 jdk17 jdk8 ]`) Java runtimes added to `MATERIALMC_JAVA_PATHS` variable
 - `msaClientID` (default: `null`, requires full rebuild!) Client ID used for Microsoft Authentication
 - `textToSpeechSupport` (default: `isLinux`) Turn on/off support for text-to-speech on Linux (macOS will always have this)

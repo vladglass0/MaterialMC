@@ -53,6 +53,8 @@ else()
     file(GLOB_RECURSE FRONTEND_SOURCES CONFIGURE_DEPENDS
         "${FRONTEND_SOURCE_DIR}/src/*"
         "${FRONTEND_SOURCE_DIR}/public/*"
+        "${FRONTEND_SOURCE_DIR}/scripts/*"
+        "${FRONTEND_SOURCE_DIR}/i18n/*"
     )
     list(APPEND FRONTEND_SOURCES
         "${FRONTEND_SOURCE_DIR}/index.html"

@@ -1,5 +1,6 @@
 import type { ApiErrorPayload } from "./common";
 import type { LogLine } from "./console";
+import type { Prompt } from "./prompts";
 import type { SettingsChangedEvent } from "./settings";
 import type { TaskInfo } from "./tasks";
 
@@ -75,6 +76,13 @@ export interface MaterialMCEventMap {
   "settings.changed": SettingsChangedEvent;
   "resources.changed": { instanceId: string; kind: string };
   "worlds.changed": InstanceEvent;
+
+  "prompt.show": Prompt;
+  "prompt.update": { id: number; payload: Record<string, unknown> };
+  "prompt.close": { id: number };
+  "i18n.changed": Record<string, never>;
+  "icons.changed": Record<string, never>;
+  "components.changed": InstanceEvent;
 }
 
 export type MaterialMCEventName = keyof MaterialMCEventMap;

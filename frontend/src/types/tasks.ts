@@ -10,6 +10,17 @@ export type TaskKind =
   | "launch.update"
   | "java.detect"
   | "versions.load"
+  | "instance.update"
+  | "instance.import"
+  | "instance.export"
+  | "components.resolve"
+  | "modpack.update"
+  | "mods.update"
+  | "world.install"
+  | "world.copy"
+  | "java.install"
+  | "skin.upload"
+  | "upload"
   | "other";
 
 export type TaskState = "running" | "succeeded" | "failed" | "aborted";

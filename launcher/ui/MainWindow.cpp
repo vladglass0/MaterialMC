@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2023 TheKodeToad <TheKodeToad@proton.me>
  *
@@ -292,7 +292,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
         // do not show ugly blue border on the mac
         view->setAttribute(Qt::WA_MacShowFocusRect, false);
         connect(delegate, &ListViewDelegate::textChanged, this, [this](QString before, QString after) {
-            if (auto newRoot = askToUpdateInstanceDirName(m_selectedInstance, before, after, this); !newRoot.isEmpty()) {
+            if (auto newRoot = askToUpdateInstanceDirName(m_selectedInstance, before, after); !newRoot.isEmpty()) {
                 auto oldID = m_selectedInstance->id();
                 auto newID = QFileInfo(newRoot).fileName();
                 QString origGroup(APPLICATION->instances()->getInstanceGroup(oldID));
@@ -958,7 +958,7 @@ void MainWindow::processURLs(QList<QUrl> urls)
                 } else {
                     CustomMessageBox::selectable(
                         this, tr("Error"),
-                        tr("Unsupported Modrinth link.\n\nPrism Launcher currently only supports modpack links such as "
+                        tr("Unsupported Modrinth link.\n\nMaterialMC currently only supports modpack links such as "
                            "modrinth://modpack/fabulously-optimized."),
                         QMessageBox::Critical)
                         ->show();
@@ -1044,10 +1044,10 @@ void MainWindow::processURLs(QList<QUrl> urls)
                     receivedData.insert(it->first, it->second);
                 emit APPLICATION->oauthReplyRecieved(receivedData);
                 continue;
-            } else if ((url.scheme() == "prismlauncher" || url.scheme() == BuildConfig.LAUNCHER_APP_BINARY_NAME) && isExternalURLImport) {
-                // PrismLauncher URL protocol modpack import
+            } else if ((url.scheme() == "materialmc" || url.scheme() == BuildConfig.LAUNCHER_APP_BINARY_NAME) && isExternalURLImport) {
+                // MaterialMC URL protocol modpack import
                 // works for any prism fork
-                // preferred import format: prismlauncher://import?url=ENCODED
+                // preferred import format: materialmc://import?url=ENCODED
                 const auto host = url.host().toLower();
                 const auto path = url.path();
 
@@ -1061,7 +1061,7 @@ void MainWindow::processURLs(QList<QUrl> urls)
                     }
                 }
 
-                // alternative import format: prismlauncher://import/ENCODED
+                // alternative import format: materialmc://import/ENCODED
                 if (encodedTarget.isEmpty()) {
                     QString p = path;
 
@@ -1396,7 +1396,7 @@ void MainWindow::globalSettingsClosed()
     updateStatusCenter();
     updateCatState();
     // This needs to be done to prevent UI elements disappearing in the event the config is changed
-    // but Prism Launcher exits abnormally, causing the window state to never be saved:
+    // but MaterialMC exits abnormally, causing the window state to never be saved:
     APPLICATION->settings()->set("MainWindowState", QString::fromUtf8(saveState().toBase64()));
     update();
 }
@@ -1535,7 +1535,7 @@ void MainWindow::on_actionDeleteInstance_triggered()
     if (response != QMessageBox::Yes)
         return;
 
-    if (!checkLinkedInstances(id, this, tr("Deleting")))
+    if (!checkLinkedInstances(id, tr("Deleting")))
         return;
 
     if (APPLICATION->instances()->trashInstance(id)) {
@@ -1745,35 +1745,7 @@ void MainWindow::selectionBad()
 
 void MainWindow::checkInstancePathForProblems()
 {
-    QString instanceFolder = APPLICATION->settings()->get("InstanceDir").toString();
-    if (FS::checkProblemticPathJava(QDir(instanceFolder))) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder contains \'!\' and this is known to cause Java problems!"));
-        warning.setInformativeText(tr("You have now two options: <br/>"
-                                      " - change the instance folder in the settings <br/>"
-                                      " - move this installation of %1 to a different folder")
-                                       .arg(BuildConfig.LAUNCHER_DISPLAYNAME));
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    }
-    auto tempFolderText =
-        tr("This is a problem: <br/>"
-           " - The launcher will likely be deleted without warning by the operating system <br/>"
-           " - close the launcher now and extract it to a real location, not a temporary folder");
-    QString pathfoldername = QDir(instanceFolder).absolutePath();
-    if (pathfoldername.contains("Rar$", Qt::CaseInsensitive)) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder contains \'Rar$\' - that means you haven't extracted the launcher archive!"));
-        warning.setInformativeText(tempFolderText);
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    } else if (pathfoldername.startsWith(QDir::tempPath()) || pathfoldername.contains("/TempState/")) {
-        QMessageBox warning(this);
-        warning.setText(tr("Your instance folder is in a temporary folder: \'%1\'!").arg(QDir::tempPath()));
-        warning.setInformativeText(tempFolderText);
-        warning.setDefaultButton(QMessageBox::Ok);
-        warning.exec();
-    }
+    ::checkInstancePathForProblems();
 }
 
 void MainWindow::updateStatusCenter()

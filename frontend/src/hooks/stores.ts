@@ -7,7 +7,8 @@
 import { useSyncExternalStore } from "react";
 import { materialmc, on } from "../api/client";
 import type { Account } from "../types/accounts";
-import type { Instance } from "../types/instances";
+import type { Instance, InstancesOverview } from "../types/instances";
+import type { LauncherSettings } from "../types/settings";
 import type { TaskInfo } from "../types/tasks";
 
 interface Snapshot<T> {
@@ -113,6 +114,22 @@ export const tasksStore = new Store<TaskInfo[]>([], materialmc.tasks.list, (stor
   on("download.failed", upsert);
 });
 
+export const overviewStore = new Store<InstancesOverview>(
+  { canUndoTrash: false, totalPlayTime: 0, showGlobalGameTime: false, collapsedGroups: [] },
+  materialmc.instances.overview,
+  (store) => {
+    const refresh = () => void store.refresh();
+    on("instances.changed", refresh);
+    on("instance.stopped", refresh);
+    on("settings.changed", refresh);
+  },
+);
+
+/** Global launcher settings (allow-listed); kept current by `settings.changed`. */
+export const settingsStore = new Store<LauncherSettings | null>(null, materialmc.settings.get, (store) => {
+  on("settings.changed", () => void store.refresh());
+});
+
 function useStore<T>(store: Store<T>): Snapshot<T> {
   return useSyncExternalStore(store.subscribe, store.getSnapshot);
 }
@@ -120,9 +137,14 @@ function useStore<T>(store: Store<T>): Snapshot<T> {
 export const useInstances = () => useStore(instancesStore);
 export const useAccounts = () => useStore(accountsStore);
 export const useTasks = () => useStore(tasksStore);
+export const useOverview = () => useStore(overviewStore);
+export const useSettings = () => useStore(settingsStore);
 
 export function refreshInstances(): Promise<void> {
   return instancesStore.refresh();
+}
+export function refreshSettings(): Promise<void> {
+  return settingsStore.refresh();
 }
 export function refreshTasks(): Promise<void> {
   return tasksStore.refresh();

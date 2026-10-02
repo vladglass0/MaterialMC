@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-only AND Apache-2.0
 
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022-2023 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2022 TheKodeToad <TheKodeToad@proton.me>
  *
@@ -233,11 +233,16 @@ Result<> loadPackProfile(PackProfile* parent, const QString& filename, Component
 
 // BEGIN: save/load logic
 
-void PackProfile::saveNow()
+bool PackProfile::saveNow()
 {
-    if (saveIsScheduled() && save_internal()) {
-        d->m_saveTimer.stop();
+    if (!saveIsScheduled()) {
+        return true;
     }
+    if (!save_internal()) {
+        return false;
+    }
+    d->m_saveTimer.stop();
+    return true;
 }
 
 bool PackProfile::saveIsScheduled() const

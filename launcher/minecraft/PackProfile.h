@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-only AND Apache-2.0
 
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022-2023 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2022 TheKodeToad <TheKodeToad@proton.me>
  *
@@ -124,8 +124,8 @@ class PackProfile : public QAbstractListModel {
 
     QString patchFilePathForUid(const QString& uid) const;
 
-    /// if there is a save scheduled, do it now.
-    void saveNow();
+    /// if there is a save scheduled, do it now. Returns false if saving fails.
+    bool saveNow();
 
     /// helper method, returns RuntimeContext of instance
     RuntimeContext runtimeContext();

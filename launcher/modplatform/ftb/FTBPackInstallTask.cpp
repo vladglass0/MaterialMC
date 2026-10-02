@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 flowln <flowlnlnln@gmail.com>
  *  Copyright (c) 2022 Jamie Mansfield <jmansfield@cadixdev.org>
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
@@ -51,7 +51,8 @@
 
 #include "Application.h"
 #include "BuildConfig.h"
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "interaction/UserInteraction.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 namespace FTB {
 
@@ -208,15 +209,10 @@ void PackInstallTask::onResolveModsSucceeded()
     if (anyBlocked) {
         qDebug() << "Blocked files found, displaying file list";
 
-        BlockedModsDialog messageDialog(m_parent, tr("Blocked files found"),
-                                        tr("The following files are not available for download in third party launchers.<br/>"
-                                           "You will need to manually download them and add them to the instance."),
-                                        m_blockedMods);
-
-        messageDialog.setModal(true);
-
-        if (messageDialog.exec() == QDialog::Accepted) {
-            qDebug() << "Post dialog blocked mods list: " << m_blockedMods;
+        if (interaction::resolveBlockedMods(tr("Blocked files found"),
+                                            tr("The following files are not available for download in third party launchers.<br/>"
+                                               "You will need to manually download them and add them to the instance."),
+                                            m_blockedMods)) {
             createInstance();
         } else {
             abort();

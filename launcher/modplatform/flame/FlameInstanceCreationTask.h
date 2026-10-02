@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@
 
 #include "net/NetJob.h"
 
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 class FlameCreationTask final : public InstanceTask {
     Q_OBJECT

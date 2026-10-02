@@ -38,7 +38,7 @@ let
 in
 
 stdenv.mkDerivation {
-  pname = "prismlauncher-unwrapped";
+  pname = "materialmc-unwrapped";
   version = "12.0-unstable-${date}";
 
   src = lib.fileset.toSource {
@@ -64,7 +64,7 @@ stdenv.mkDerivation {
   # Ensure that instance shortcuts point to our final wrapper, rather than this unwrapped version
   postPatch = ''
     substituteInPlace launcher/minecraft/ShortcutUtils.cpp \
-      --replace-fail 'QApplication::applicationFilePath()' 'QProcessEnvironment::systemEnvironment().value("NIX_LAUNCHER_WRAPPER", "${placeholder "out"}/bin/prismlauncher")'
+      --replace-fail 'QApplication::applicationFilePath()' 'QProcessEnvironment::systemEnvironment().value("NIX_LAUNCHER_WRAPPER", "${placeholder "out"}/bin/materialmc")'
   '';
 
   nativeBuildInputs = [
@@ -119,7 +119,7 @@ stdenv.mkDerivation {
       Scrumplex
       getchoo
     ];
-    mainProgram = "prismlauncher";
+    mainProgram = "materialmc";
     platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
 }

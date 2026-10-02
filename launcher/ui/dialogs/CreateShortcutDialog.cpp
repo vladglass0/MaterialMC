@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (C) 2023 TheKodeToad <TheKodeToad@proton.me>
  *  Copyright (C) 2025 Yihe Li <winmikedows@hotmail.com>
@@ -211,7 +211,7 @@ void CreateShortcutDialog::createShortcut()
     if (ui->overrideAccountCheckbox->isChecked())
         extraArgs.append({ "--profile", ui->accountSelectionBox->currentData().toString() });
 
-    ShortcutUtils::Shortcut args{ m_instance, name, targetString, this, extraArgs, InstIconKey, target };
+    ShortcutUtils::Shortcut args{ m_instance, name, targetString, extraArgs, InstIconKey, target };
     if (target == ShortcutTarget::Desktop)
         ShortcutUtils::createInstanceShortcutOnDesktop(args);
     else if (target == ShortcutTarget::Applications)

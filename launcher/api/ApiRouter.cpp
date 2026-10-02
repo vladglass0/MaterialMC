@@ -17,6 +17,8 @@
 
 #include "ApiRouter.h"
 
+#include <QTimer>
+
 #include <QDebug>
 #include <QJsonDocument>
 #include <QLoggingCategory>
@@ -66,6 +68,13 @@ void ApiRouter::addSync(const QString& method, SyncHandler handler)
 {
     add(method, [handler = std::move(handler)](const QJsonObject& params, const ApiReply& reply) {
         reply.guard([&] { reply.resolve(handler(params)); });
+    });
+}
+
+void ApiRouter::addDeferred(const QString& method, SyncHandler handler)
+{
+    add(method, [this, handler = std::move(handler)](const QJsonObject& params, const ApiReply& reply) {
+        QTimer::singleShot(0, this, [handler, params, reply] { reply.guard([&] { reply.resolve(handler(params)); }); });
     });
 }
 

@@ -17,6 +17,8 @@
 
 #include "WebUiHost.h"
 
+#include <QTimer>
+
 #include <QBuffer>
 #include <QCoreApplication>
 #include <QDebug>
@@ -31,6 +33,7 @@
 #include "BuildConfig.h"
 #include "DesktopServices.h"
 #include "FileSystem.h"
+#include "InstanceDirUpdate.h"
 #include "InstanceList.h"
 #include "icons/IconList.h"
 #include "minecraft/MinecraftInstance.h"
@@ -38,9 +41,13 @@
 
 #include "AccountApi.h"
 #include "ApiRouter.h"
+#include "ComponentApi.h"
 #include "ConsoleApi.h"
 #include "InstanceApi.h"
+#include "I18nApi.h"
 #include "ModApi.h"
+#include "ModpackApi.h"
+#include "PromptApi.h"
 #include "ResourceApi.h"
 #include "SettingsApi.h"
 #include "SystemApi.h"
@@ -176,7 +183,11 @@ bool WebUiHost::init(QString* error)
     m_resources = std::make_unique<api::ResourceApi>(m_router.get(), m_tasks.get());
     m_accounts = std::make_unique<api::AccountApi>(m_router.get(), m_tasks.get());
     m_mods = std::make_unique<api::ModApi>(m_router.get(), m_tasks.get());
+    m_modpacks = std::make_unique<api::ModpackApi>(m_router.get(), m_tasks.get());
     m_settings = std::make_unique<api::SettingsApi>(m_router.get());
+    m_prompts = std::make_unique<api::PromptApi>(m_router.get());
+    m_i18n = std::make_unique<api::I18nApi>(m_router.get());
+    m_components = std::make_unique<api::ComponentApi>(m_router.get(), m_tasks.get());
     api::registerSystemApi(m_router.get(), m_tasks.get(), { m_view->engineName(), !m_devUrl.isEmpty() });
     api::registerVersionApi(m_router.get(), m_tasks.get(), &m_context);
 
@@ -205,6 +216,8 @@ bool WebUiHost::init(QString* error)
              << m_view->engineName();
     m_view->load(url);
     m_view->show();
+    // Shown by the page once it is up (prompts wait in UserInteraction until then).
+    QTimer::singleShot(0, this, [] { checkInstancePathForProblems(); });
     return true;
 }
 

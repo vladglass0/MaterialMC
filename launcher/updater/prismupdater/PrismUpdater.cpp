@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Rachel Powers <508861+Ryex@users.noreply.github.com>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -83,7 +83,7 @@ PrismUpdaterApp::PrismUpdaterApp(int& argc, char** argv) : QApplication(argc, ar
 
     // Command line parsing
     QCommandLineParser parser;
-    parser.setApplicationDescription(QObject::tr("An auto-updater for Prism Launcher"));
+    parser.setApplicationDescription(QObject::tr("An auto-updater for MaterialMC"));
 
     parser.addOptions(
         { { { "d", "dir" }, tr("Use a custom path as application root (use '.' for current directory)."), tr("directory") },
@@ -129,7 +129,7 @@ PrismUpdaterApp::PrismUpdaterApp(int& argc, char** argv) : QApplication(argc, ar
     // change folder
     QString dirParam = parser.value("dir");
     if (!dirParam.isEmpty()) {
-        // the dir param. it makes prism launcher data path point to whatever the user specified
+        // the dir param. it makes MaterialMC data path point to whatever the user specified
         // on command line
         adjustedBy = "Command line";
         m_dataPath = dirParam;
@@ -169,7 +169,7 @@ PrismUpdaterApp::PrismUpdaterApp(int& argc, char** argv) : QApplication(argc, ar
 #endif
     }
 
-    m_updateLogPath = FS::PathCombine(m_dataPath, "logs", "prism_launcher_update.log");
+    m_updateLogPath = FS::PathCombine(m_dataPath, "logs", "materialmc_update.log");
 
     {  // setup logging
         FS::ensureFolderPathExists(FS::PathCombine(m_dataPath, "logs"));
@@ -348,7 +348,7 @@ PrismUpdaterApp::PrismUpdaterApp(int& argc, char** argv) : QApplication(argc, ar
 
     m_allowPreRelease = parser.isSet("pre-release");
 
-    auto markerFilePath = QDir(m_rootPath).absoluteFilePath(".prism_launcher_updater_unpack.marker");
+    auto markerFilePath = QDir(m_rootPath).absoluteFilePath(".materialmc_updater_unpack.marker");
     auto markerFile = QFileInfo(markerFilePath);
     if (markerFile.exists()) {
         auto res = FS::read(markerFilePath);
@@ -456,7 +456,7 @@ void PrismUpdaterApp::run()
 
     if (m_isFlatpak) {
         showFatalErrorMessage(tr("Updating flatpack not supported"), tr("Actions outside of checking if an update is available are not "
-                                                                        "supported when running the flatpak version of Prism Launcher."));
+                                                                        "supported when running the flatpak version of MaterialMC."));
         return;
     }
     if (m_isAppimage) {
@@ -586,14 +586,14 @@ void PrismUpdaterApp::moveAndFinishUpdate(const QDir& target)
 
     if (error) {
         logUpdate(tr("There were errors installing the update."));
-        auto failMarker = FS::PathCombine(m_dataPath, ".prism_launcher_update.fail");
+        auto failMarker = FS::PathCombine(m_dataPath, ".materialmc_update.fail");
         FS::copy(m_updateLogPath, failMarker).overwrite(true)();
     } else {
         logUpdate(tr("Update succeed."));
-        auto successMarker = FS::PathCombine(m_dataPath, ".prism_launcher_update.success");
+        auto successMarker = FS::PathCombine(m_dataPath, ".materialmc_update.success");
         FS::copy(m_updateLogPath, successMarker).overwrite(true)();
     }
-    auto updateLockPath = FS::PathCombine(m_dataPath, ".prism_launcher_update.lock");
+    auto updateLockPath = FS::PathCombine(m_dataPath, ".materialmc_update.lock");
     FS::deletePath(updateLockPath);
 
     QProcess proc;
@@ -895,7 +895,7 @@ bool writeLockFile(const QString& path,
 void PrismUpdaterApp::performInstall(const QFileInfo& file)
 {
     qDebug() << "starting install";
-    auto updateLockPath = FS::PathCombine(m_dataPath, ".prism_launcher_update.lock");
+    auto updateLockPath = FS::PathCombine(m_dataPath, ".materialmc_update.lock");
     QFileInfo updateLock(updateLockPath);
     if (updateLock.exists()) {
         auto [timestamp, from, to, target, dataPath] = readLockFile(updateLockPath);
@@ -910,7 +910,7 @@ void PrismUpdaterApp::performInstall(const QFileInfo& file)
                "\n"
                "This likely means that a previous update attempt failed. Please ensure your installation is in working order before "
                "proceeding.\n"
-               "Check the Prism Launcher updater log at: \n"
+               "Check the MaterialMC updater log at: \n"
                "%7\n"
                "for details on the last update attempt.\n"
                "\n"
@@ -938,7 +938,7 @@ void PrismUpdaterApp::performInstall(const QFileInfo& file)
     }
     clearUpdateLog();
 
-    auto changelogPath = FS::PathCombine(m_dataPath, ".prism_launcher_update.changelog");
+    auto changelogPath = FS::PathCombine(m_dataPath, ".materialmc_update.changelog");
     if (auto res = FS::write(changelogPath, m_installRelease.body.toUtf8()); !res) {
         logUpdate(tr("Failed to write changelog: %1").arg(res.error()));
     }
@@ -969,7 +969,7 @@ void PrismUpdaterApp::unpackAndInstall(const QFileInfo& archive)
     backupAppDir();
 
     if (auto loc = unpackArchive(archive)) {
-        auto markerFilePath = loc.value().absoluteFilePath(".prism_launcher_updater_unpack.marker");
+        auto markerFilePath = loc.value().absoluteFilePath(".materialmc_updater_unpack.marker");
         if (auto res = FS::write(markerFilePath, m_rootPath.toUtf8()); !res) {
             qFatal("Failed to write unpack marker: %s", res.error().toUtf8().constData());
         }
@@ -1028,13 +1028,13 @@ void PrismUpdaterApp::backupAppDir()
     if (fileList.isEmpty()) {
         // best guess
         if (BuildConfig.BUILD_ARTIFACT.toLower().contains("linux")) {
-            fileList.append({ "PrismLauncher", "bin", "share", "lib" });
+            fileList.append({ "MaterialMC", "bin", "share", "lib" });
         } else {  // windows by process of elimination
             fileList.append({
                 "jars",
-                "prismlauncher.exe",
-                "prismlauncher_filelink.exe",
-                "prismlauncher_updater.exe",
+                "materialmc.exe",
+                "materialmc_filelink.exe",
+                "materialmc_updater.exe",
                 "qtlogging.ini",
                 "imageformats",
                 "iconengines",
@@ -1054,7 +1054,7 @@ void PrismUpdaterApp::backupAppDir()
         FS::PathCombine(appDir.absolutePath(),
                         QStringLiteral("backup_") + QString(m_prismVersion).replace(s_replaceRegex, QString("_")) + "-" + m_prismGitCommit);
     FS::ensureFolderPathExists(backupDir);
-    auto backupMarkerPath = FS::PathCombine(m_dataPath, ".prism_launcher_update_backup_path.txt");
+    auto backupMarkerPath = FS::PathCombine(m_dataPath, ".materialmc_update_backup_path.txt");
     if (auto res = FS::write(backupMarkerPath, backupDir.toUtf8()); !res) {
         qFatal("Failed to write backup marker: %s", res.error().toUtf8().constData());
     }
@@ -1110,7 +1110,7 @@ void PrismUpdaterApp::backupAppDir()
 
 std::optional<QDir> PrismUpdaterApp::unpackArchive(const QFileInfo& archive)
 {
-    auto tempExtractPath = FS::PathCombine(m_dataPath, "prism_launcher_update_release");
+    auto tempExtractPath = FS::PathCombine(m_dataPath, "materialmc_update_release");
     FS::ensureFolderPathExists(tempExtractPath);
     auto tmpExtractDir = QDir(tempExtractPath);
 

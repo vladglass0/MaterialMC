@@ -6,6 +6,8 @@ project(application)
 
 set(CORE_SOURCES
     # LOGIC - Base classes and infrastructure
+    interaction/UserInteraction.h
+    interaction/UserInteraction.cpp
     BaseInstaller.h
     BaseInstaller.cpp
     BaseVersionList.h
@@ -493,6 +495,8 @@ set(API_SOURCES
     modplatform/modrinth/ModrinthAPI.cpp
     modplatform/helpers/HashUtils.h
     modplatform/helpers/HashUtils.cpp
+    modplatform/helpers/BlockedModsWatcher.h
+    modplatform/helpers/BlockedModsWatcher.cpp
     modplatform/helpers/OverrideUtils.h
     modplatform/helpers/OverrideUtils.cpp
 
@@ -1022,9 +1026,6 @@ SET(LAUNCHER_SOURCES
     ui/pages/modplatform/ImportPage.cpp
     ui/pages/modplatform/ImportPage.h
 
-    ui/pages/modplatform/OptionalModDialog.cpp
-    ui/pages/modplatform/OptionalModDialog.h
-
     ui/pages/modplatform/modrinth/ModrinthResourcePages.cpp
     ui/pages/modplatform/modrinth/ModrinthResourcePages.h
 
@@ -1053,8 +1054,6 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/ImportResourceDialog.h
     ui/dialogs/MSALoginDialog.cpp
     ui/dialogs/MSALoginDialog.h
-    ui/dialogs/NetworkJobFailedDialog.cpp
-    ui/dialogs/NetworkJobFailedDialog.h
     ui/dialogs/NewComponentDialog.cpp
     ui/dialogs/NewComponentDialog.h
     ui/dialogs/NewInstanceDialog.cpp
@@ -1073,8 +1072,6 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/ResourceDownloadDialog.h
     ui/dialogs/ScrollMessageBox.cpp
     ui/dialogs/ScrollMessageBox.h
-    ui/dialogs/BlockedModsDialog.cpp
-    ui/dialogs/BlockedModsDialog.h
     ui/dialogs/ChooseProviderDialog.h
     ui/dialogs/ChooseProviderDialog.cpp
     ui/dialogs/ResourceUpdateDialog.cpp
@@ -1083,8 +1080,6 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/InstallLoaderDialog.h
     ui/dialogs/ChooseOfflineNameDialog.cpp
     ui/dialogs/ChooseOfflineNameDialog.h
-    ui/dialogs/UntrustedModsDialog.cpp
-    ui/dialogs/UntrustedModsDialog.h
 
     ui/dialogs/skins/SkinManageDialog.cpp
     ui/dialogs/skins/SkinManageDialog.h
@@ -1220,10 +1215,18 @@ if(Launcher_ENABLE_WEBUI)
         api/VersionApi.cpp
         api/ModApi.h
         api/ModApi.cpp
+        api/ModpackApi.h
+        api/ModpackApi.cpp
         api/SettingsApi.h
         api/SettingsApi.cpp
         api/SystemApi.h
         api/SystemApi.cpp
+        api/PromptApi.h
+        api/PromptApi.cpp
+        api/I18nApi.h
+        api/I18nApi.cpp
+        api/ComponentApi.h
+        api/ComponentApi.cpp
         api/WebUiHost.h
         api/WebUiHost.cpp
     )

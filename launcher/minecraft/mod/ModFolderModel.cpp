@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (c) 2022 flowln <flowlnlnln@gmail.com>
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *  Copyright (c) 2023 Trial97 <alexandru.tripon97@gmail.com>
@@ -57,7 +57,7 @@
 #include "minecraft/mod/ResourceFolderModel.h"
 #include "minecraft/mod/tasks/LocalModParseTask.h"
 #include "modplatform/ModIndex.h"
-#include "ui/dialogs/CustomMessageBox.h"
+#include "interaction/UserInteraction.h"
 
 ModFolderModel::ModFolderModel(const QDir& dir, MinecraftInstance* instance, bool isIndexed, bool createDir, QObject* parent)
     : ResourceFolderModel(QDir(dir), instance, isIndexed, createDir, parent)
@@ -496,18 +496,19 @@ bool ModFolderModel::setResourceEnabled(const QModelIndexList& indexes, EnableAc
         }
         message += tr("Do you want to automatically apply these related changes?\nIgnoring them may break the game.");
 
-        auto* box = CustomMessageBox::selectable(nullptr, title, message, QMessageBox::Warning,
-                                                 QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel, QMessageBox::No);
-        box->button(QMessageBox::No)->setText(noButton);
-        box->button(QMessageBox::Yes)->setText(yesButton);
-        box->setDetailedText(details);
+        interaction::Prompt prompt;
+        prompt.title = title;
+        prompt.text = message;
+        prompt.icon = "warning";
+        prompt.buttons = { interaction::reject(tr("Cancel")), interaction::neutral(noButton, "no"), interaction::accept(yesButton, "yes") };
+        prompt.defaultButton = "no";
+        prompt.payload = { { "details", details } };
+        const auto response = interaction::UserInteraction::instance()->askBlocking(prompt);
 
-        auto response = box->exec();
-
-        if (response == QMessageBox::Yes) {
+        if (response.is("yes")) {
             toEnable |= requiredToEnable;
             toDisable |= requiredToDisable;
-        } else if (response == QMessageBox::Cancel) {
+        } else if (!response.is("no")) {
             return false;
         }
     }

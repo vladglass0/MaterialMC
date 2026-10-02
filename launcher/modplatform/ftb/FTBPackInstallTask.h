@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 flowln <flowlnlnln@gmail.com>
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *
@@ -43,7 +43,7 @@
 #include "QObjectPtr.h"
 #include "modplatform/flame/FileResolvingTask.h"
 #include "net/NetJob.h"
-#include "ui/dialogs/BlockedModsDialog.h"
+#include "modplatform/helpers/BlockedModsWatcher.h"
 
 #include <QWidget>
 #include <memory>

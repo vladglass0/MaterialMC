@@ -8,15 +8,15 @@ if(UNIX)
     endif()
 endif()
 
-set(Launcher_CommonName "PrismLauncher")
-set(Launcher_DisplayName "Prism Launcher")
-set(Launcher_AppID "org.prismlauncher.PrismLauncher")
+set(Launcher_CommonName "MaterialMC")
+set(Launcher_DisplayName "MaterialMC")
+set(Launcher_AppID "org.materialmc.MaterialMC")
 set(Launcher_Domain "prismlauncher.org")
 set(Launcher_Git "https://github.com/PrismLauncher/PrismLauncher")
 
 set(Launcher_Name "${Launcher_CommonName}" PARENT_SCOPE)
 set(Launcher_DisplayName "${Launcher_DisplayName}" PARENT_SCOPE)
-set(Launcher_ENVName "PRISMLAUNCHER" PARENT_SCOPE)
+set(Launcher_ENVName "MATERIALMC" PARENT_SCOPE)
 set(Launcher_Domain "${Launcher_Domain}" PARENT_SCOPE)
 set(Launcher_Git "${Launcher_Git}" PARENT_SCOPE)
 
@@ -40,7 +40,7 @@ set(Launcher_Branding_ICO "program_info/${Launcher_APP_BINARY_NAME}.ico")
 set(Launcher_Branding_ICO "${Launcher_Branding_ICO}" PARENT_SCOPE)
 set(Launcher_Branding_WindowsRC "program_info/${Launcher_APP_BINARY_NAME}.rc" PARENT_SCOPE)
 set(Launcher_Branding_LogoQRC "program_info/${Launcher_APP_BINARY_NAME}.qrc" PARENT_SCOPE)
-set(Launcher_Authors "MultiMC & Prism Launcher Contributors")
+set(Launcher_Authors "MultiMC & MaterialMC Contributors")
 
 set(Launcher_Portable_File "program_info/portable.txt" PARENT_SCOPE)
 

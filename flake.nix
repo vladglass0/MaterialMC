@@ -92,7 +92,7 @@
           packages' = self.packages.${system};
 
           welcomeMessage = ''
-            Welcome to the Prism Launcher repository! 🌈
+            Welcome to the MaterialMC repository! 🌈
 
             We just set some things up for you. To get building, you can run:
 
@@ -110,7 +110,7 @@
           '';
 
           # Re-use our package wrapper to wrap our development environment
-          qt-wrapper-env = packages'.prismlauncher.overrideAttrs (old: {
+          qt-wrapper-env = packages'.materialmc.overrideAttrs (old: {
             name = "qt-wrapper-env";
 
             # Required to use script-based makeWrapper below
@@ -134,9 +134,9 @@
 
         {
           default = mkShell {
-            name = "prism-launcher";
+            name = "materialmc";
 
-            inputsFrom = [ packages'.prismlauncher-unwrapped ];
+            inputsFrom = [ packages'.materialmc-unwrapped ];
 
             packages = [
               pkgs.ccache
@@ -162,7 +162,7 @@
             ];
 
             cmakeBuildType = "Debug";
-            cmakeFlags = [ "-GNinja" ] ++ packages'.prismlauncher-unwrapped.cmakeFlags;
+            cmakeFlags = [ "-GNinja" ] ++ packages'.materialmc-unwrapped.cmakeFlags;
             dontFixCmake = true;
 
             shellHook = ''
@@ -193,7 +193,7 @@
         in
 
         {
-          prismlauncher-unwrapped = prev.callPackage ./nix/unwrapped.nix {
+          materialmc-unwrapped = prev.callPackage ./nix/unwrapped.nix {
             inherit (llvm) stdenv;
             inherit
               libnbtplusplus
@@ -201,7 +201,7 @@
               ;
           };
 
-          prismlauncher = final.callPackage ./nix/wrapper.nix { };
+          materialmc = final.callPackage ./nix/wrapper.nix { };
         };
 
       packages = forAllSystems (
@@ -215,8 +215,8 @@
 
           # Grab our packages from it and set the default
           packages = {
-            inherit (prismPackages) prismlauncher-unwrapped prismlauncher;
-            default = prismPackages.prismlauncher;
+            inherit (prismPackages) materialmc-unwrapped materialmc;
+            default = prismPackages.materialmc;
           };
         in
 
@@ -234,11 +234,11 @@
         in
 
         {
-          prismlauncher-debug = packages'.prismlauncher.override {
-            prismlauncher-unwrapped = legacyPackages'.prismlauncher-unwrapped-debug;
+          materialmc-debug = packages'.materialmc.override {
+            materialmc-unwrapped = legacyPackages'.materialmc-unwrapped-debug;
           };
 
-          prismlauncher-unwrapped-debug = packages'.prismlauncher-unwrapped.overrideAttrs {
+          materialmc-unwrapped-debug = packages'.materialmc-unwrapped.overrideAttrs {
             cmakeBuildType = "Debug";
             dontStrip = true;
           };

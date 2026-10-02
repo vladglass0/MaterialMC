@@ -39,6 +39,8 @@ export interface Instance {
   hasCrashed: boolean;
   hasVersionBroken: boolean;
   managedPack: { type: string; name: string; version: string } | null;
+  supportsDemo: boolean;
+  shortcutCount: number;
 }
 
 export interface InstanceDetails extends Instance {
@@ -47,6 +49,9 @@ export interface InstanceDetails extends Instance {
   instanceRoot: string;
   gameRoot: string;
   components: InstanceComponent[];
+  /** Same text as the Qt status bar (version, loader, play time). */
+  statusDescription: string;
+  shortcuts: Array<{ name: string; path: string }>;
 }
 
 export interface InstanceComponent {
@@ -84,12 +89,61 @@ export interface CreateInstanceParams {
   loader?: InstanceLoader | null;
 }
 
-export interface CopyInstanceParams {
+/** Mirrors InstanceCopyPrefs. Omitted flags use the Qt defaults (copy everything, no links). */
+export interface CopyInstanceOptions {
+  copySaves: boolean;
+  keepPlaytime: boolean;
+  copyGameOptions: boolean;
+  copyResourcePacks: boolean;
+  copyShaderPacks: boolean;
+  copyServers: boolean;
+  copyMods: boolean;
+  copyScreenshots: boolean;
+  useSymLinks: boolean;
+  linkRecursively: boolean;
+  useHardLinks: boolean;
+  dontLinkSaves: boolean;
+  useClone: boolean;
+}
+
+export interface CopyInstanceParams extends Partial<CopyInstanceOptions> {
   id: InstanceId;
   name: string;
   group?: string | null;
-  copySaves: boolean;
-  keepPlaytime: boolean;
+  iconKey?: string;
+}
+
+export interface InstancesOverview {
+  canUndoTrash: boolean;
+  /** Seconds, all instances. */
+  totalPlayTime: number;
+  showGlobalGameTime: boolean;
+  collapsedGroups: string[];
+}
+
+export interface ProfilerInfo {
+  key: string;
+  name: string;
+  available: boolean;
+  error: string;
+}
+
+export type ShortcutTarget = "desktop" | "applications" | "other";
+
+export interface ShortcutTargets {
+  targets: ShortcutTarget[];
+  worlds: Array<{ name: string; lastPlayed: number | null }>;
+  quickPlaySingleplayer: boolean;
+}
+
+export interface CreateShortcutParams {
+  id: InstanceId;
+  target: ShortcutTarget;
+  name?: string;
+  iconKey?: string;
+  accountId?: string;
+  world?: string;
+  server?: string;
 }
 
 export type LaunchMode = "normal" | "offline" | "demo";
@@ -105,4 +159,6 @@ export interface LaunchParams {
   server?: string;
   /** World folder name to join on start. */
   world?: string;
+  /** Profiler key (see `instances.profilers`); "" disables profiling. Stored as the instance's Profiler setting. */
+  profiler?: string;
 }

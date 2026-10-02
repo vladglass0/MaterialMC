@@ -5,9 +5,9 @@
   "description": "React + TypeScript user interface of MaterialMC, rendered by the system WebView",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --noEmit",
+    "dev": "node scripts/extract-i18n.mjs && vite",
+    "build": "node scripts/extract-i18n.mjs && tsc -b && vite build",
+    "typecheck": "node scripts/extract-i18n.mjs && tsc -b --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -17,12 +17,38 @@
 
 #pragma once
 
+#include <QJsonObject>
+#include <QJsonValue>
+
+#include <functional>
+#include <memory>
+
 class QObject;
+class BaseVersionList;
+namespace Meta {
+class Version;
+}
 
 namespace api {
 
+class ApiReply;
 class ApiRouter;
 class TaskTracker;
+
+/**
+ * Makes sure `list` is loaded (from the cache or the network), then resolves `reply` with `then()`.
+ * Loading runs as a tracked task so it shows up in the downloads view.
+ */
+void withLoadedList(BaseVersionList* list,
+                    bool forceReload,
+                    TaskTracker* tasks,
+                    QObject* context,
+                    const QString& title,
+                    const ApiReply& reply,
+                    std::function<QJsonValue()> then);
+
+/** { version, type, releaseTime, recommended } of a meta version. */
+QJsonObject serializeMetaVersion(const std::shared_ptr<Meta::Version>& version);
 
 /** `versions.minecraft`, `versions.loaders` (from the meta server index) and `java.list` (detected installations). */
 void registerVersionApi(ApiRouter* router, TaskTracker* tasks, QObject* context);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /*
- *  Prism Launcher - Minecraft Launcher
+ *  MaterialMC - Minecraft Launcher
  *  Copyright (C) 2022 Sefa Eyeoglu <contact@scrumplex.net>
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 
 #include "JavaCommon.h"
 #include "java/JavaUtils.h"
-#include "ui/dialogs/CustomMessageBox.h"
+#include "interaction/UserInteraction.h"
 
 #include <QRegularExpression>
 
@@ -65,7 +65,7 @@ bool JavaCommon::checkJVMArgs(QString jvmargs, QWidget* parent)
 {
     const auto problem = jvmArgsProblem(jvmargs);
     if (!problem.isEmpty()) {
-        CustomMessageBox::selectable(parent, QObject::tr("JVM arguments warning"), problem, QMessageBox::Warning)->exec();
+        interaction::message(QObject::tr("JVM arguments warning"), problem, "warning", { interaction::accept(QObject::tr("OK")) });
         return false;
     }
     return true;
@@ -84,7 +84,7 @@ void JavaCommon::javaWasOk(QWidget* parent, const JavaChecker::Result& result)
         htmlError.replace('\n', "<br />");
         text += QObject::tr("<br />Warnings:<br /><font color=\"orange\">%1</font>").arg(htmlError);
     }
-    CustomMessageBox::selectable(parent, QObject::tr("Java test success"), text, QMessageBox::Information)->show();
+    interaction::notify(QObject::tr("Java test success"), text, "info");
 }
 
 void JavaCommon::javaArgsWereBad(QWidget* parent, const JavaChecker::Result& result)
@@ -94,7 +94,7 @@ void JavaCommon::javaArgsWereBad(QWidget* parent, const JavaChecker::Result& res
     htmlError.replace('\n', "<br />");
     text += QObject::tr("The specified Java binary didn't work with the arguments you provided:<br />");
     text += QString("<font color=\"red\">%1</font>").arg(htmlError);
-    CustomMessageBox::selectable(parent, QObject::tr("Java test failure"), text, QMessageBox::Warning)->show();
+    interaction::notify(QObject::tr("Java test failure"), text, "warning");
 }
 
 void JavaCommon::javaBinaryWasBad(QWidget* parent, const JavaChecker::Result& result)
@@ -103,14 +103,14 @@ void JavaCommon::javaBinaryWasBad(QWidget* parent, const JavaChecker::Result& re
     text += QObject::tr(
         "The specified Java binary didn't work.<br />You should press 'Detect', "
         "or set the path to the Java executable.<br />");
-    CustomMessageBox::selectable(parent, QObject::tr("Java test failure"), text, QMessageBox::Warning)->show();
+    interaction::notify(QObject::tr("Java test failure"), text, "warning");
 }
 
 void JavaCommon::javaCheckNotFound(QWidget* parent)
 {
     QString text;
     text += QObject::tr("Java checker library could not be found. Please check your installation.");
-    CustomMessageBox::selectable(parent, QObject::tr("Java test failure"), text, QMessageBox::Warning)->show();
+    interaction::notify(QObject::tr("Java test failure"), text, "warning");
 }
 
 void JavaCommon::TestCheck::run()

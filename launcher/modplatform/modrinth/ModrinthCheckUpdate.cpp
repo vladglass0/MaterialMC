@@ -1,4 +1,5 @@
 #include "ModrinthCheckUpdate.h"
+#include "settings/SettingsObject.h"
 #include "Application.h"
 #include "ModrinthAPI.h"
 #include "ModrinthPackIndex.h"

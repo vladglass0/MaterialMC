@@ -73,6 +73,7 @@ class InstanceApi : public QObject, public LaunchInteraction {
 
    private:
     void registerMethods();
+    static QJsonValue createShortcut(const QJsonObject& params);
     void watchInstances();
     void watchInstance(MinecraftInstance* instance);
     void scheduleChanged();
@@ -98,6 +99,7 @@ class InstanceApi : public QObject, public LaunchInteraction {
     QHash<QString, ApiError> m_launchErrors;
     /** Instances the user stopped: their "Game crashed." failure is not a crash. */
     QSet<QString> m_killRequested;
+    QHash<QString, QString> m_requestedOfflineName;  // player name given with instances.launch
 };
 
 }  // namespace api
