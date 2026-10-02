@@ -43,7 +43,7 @@ import type { I18nCatalog, I18nCatalogKey, Prompt, PromptAnswerParams } from "./
 import type { FileSettingKey, FolderSettingKey, LauncherSettingKey, LauncherSettings } from "./settings";
 import type { IconInfo, OpenFolderParams, SaveTextParams, SystemInfo } from "./system";
 import type { TaskInfo } from "./tasks";
-import type { ModpackImportParams, ModpackInstallParams, ModpackSearchParams, ModpackSearchResult, ModpackVersionsParams } from "./modpacks";
+import type { ModpackImportParams, ModpackInstallParams, ModpackSearchParams, ModpackSearchResult, ModpackVersionsParams, RemoteVersion as ModpackRemoteVersion } from "./modpacks";
 import type { JavaInstallation, LoaderVersion, LoaderVersionsParams, MinecraftVersion } from "./versions";
 
 type Id = { id: InstanceId };
@@ -137,6 +137,8 @@ export interface MaterialMCMethods {
   "mods.install": [ModInstallParams, TaskHandle];
   "modpacks.search": [ModpackSearchParams, ModpackSearchResult];
   "modpacks.versions": [ModpackVersionsParams, RemoteVersion[]];
+  "modpacks.managedVersions": [{ id: InstanceId }, ModpackRemoteVersion[]];
+  "modpacks.updateManagedPack": [{ id: InstanceId; versionId: string; url: string; version?: string }, TaskHandle];
   "modpacks.install": [ModpackInstallParams, TaskHandle];
   "modpacks.importFile": [ModpackImportParams, TaskHandle];
   "modpacks.importUrl": [ModpackImportParams & { url: string }, TaskHandle];

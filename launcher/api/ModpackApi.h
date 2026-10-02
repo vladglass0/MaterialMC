@@ -31,6 +31,8 @@ class ModpackApi : public QObject {
    private:
     void registerMethods();
     void runRequest(const Task::Ptr& task, const ApiReply& reply);
+    void managedVersions(const QJsonObject& params, const ApiReply& reply);
+    QJsonObject updateManagedPack(const QJsonObject& params);
     void discoverFtbApp();
     QJsonObject searchFtbApp(const QJsonObject& params);
     QJsonArray ftbAppVersions(const QString& projectId);
@@ -45,7 +47,9 @@ class ModpackApi : public QObject {
                             const QString& group,
                             const QString& originalName,
                             const QString& originalVersion = {},
-                            const QMap<QString, QString>& extraInfo = {});
+                            const QMap<QString, QString>& extraInfo = {},
+                            const QString& icon = QStringLiteral("default"),
+                            bool confirmUpdate = true);
     static QString cacheKey(ModPlatform::ResourceProvider provider, const QString& projectId);
 
     ApiRouter* m_router;

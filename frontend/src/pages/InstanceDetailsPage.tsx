@@ -5,6 +5,7 @@ import { ConsoleView, instanceLogSource } from "../components/ConsoleView";
 import { ErrorBanner, Spinner } from "../components/common";
 import { formatDate, formatDuration, formatRelative, LOADER_NAMES } from "../components/format";
 import { GameLogsView } from "../components/GameLogsView";
+import { ManagedPackView } from "../components/ManagedPackView";
 import { useInstanceActions } from "../components/InstanceActions";
 import { InstanceStateChip, PlayButton } from "../components/InstanceCard";
 import { InstanceSettingsView } from "../components/InstanceSettingsView";
@@ -29,6 +30,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { id: "overview", label: () => t("Overview") },
+  { id: "managed-pack", label: () => t("Managed Pack"), visible: (instance) => instance.managedPack !== null },
   { id: "version", label: () => t("Version") },
   { id: "mods", label: () => t("Mods") },
   { id: "resourcepacks", label: () => t("Resource packs") },
@@ -91,6 +93,7 @@ export function InstanceDetailsPage() {
       </nav>
 
       {tab === "overview" && <Overview instance={instance} onNavigate={(x) => navigate(`${base}/${x}`)} />}
+      {tab === "managed-pack" && <ManagedPackView instance={instance} />}
       {tab === "version" && <VersionView instanceId={instance.id} running={running} />}
       {(tab === "mods" || tab === "resourcepacks" || tab === "shaderpacks" || tab === "texturepacks") && (
         <ResourceList instanceId={instance.id} kind={tab} />
