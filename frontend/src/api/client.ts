@@ -138,6 +138,8 @@ export const materialmc = {
   modpacks: {
     search: method("modpacks.search"),
     versions: method("modpacks.versions"),
+    managedVersions: (id: string) => call("modpacks.managedVersions", { id }),
+    updateManagedPack: method("modpacks.updateManagedPack"),
     install: method("modpacks.install"),
     importFile: method("modpacks.importFile"),
     importUrl: method("modpacks.importUrl"),
@@ -207,7 +209,7 @@ const CONTRACT: Record<MethodName, true> = {
   "accounts.remove": true, "accounts.setDefault": true, "accounts.refresh": true,
   "versions.minecraft": true, "versions.loaders": true, "java.list": true,
   "mods.search": true, "mods.versions": true, "mods.install": true,
-  "modpacks.search": true, "modpacks.versions": true, "modpacks.install": true,
+  "modpacks.search": true, "modpacks.versions": true, "modpacks.managedVersions": true, "modpacks.updateManagedPack": true, "modpacks.install": true,
   "modpacks.importFile": true, "modpacks.importUrl": true,
   "settings.get": true, "settings.set": true, "settings.reset": true, "settings.pickFolder": true, "settings.pickFile": true,
   "tasks.list": true, "tasks.cancel": true, "tasks.clearFinished": true,

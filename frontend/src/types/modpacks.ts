@@ -30,6 +30,20 @@ export interface ModpackVersionsParams {
   projectId: string;
 }
 
+export interface RemoteVersion {
+  id: string;
+  name: string;
+  versionNumber: string;
+  type: string;
+  gameVersions: string[];
+  loaders: string[];
+  date: string;
+  fileName: string;
+  compatible: boolean;
+  downloadUrl?: string;
+  changelog?: string;
+}
+
 export interface ModpackImportParams {
   name: string;
   group?: string | null;
@@ -38,3 +52,4 @@ export interface ModpackImportParams {
 export interface ModpackInstallParams extends ModpackVersionsParams, ModpackImportParams {
   versionId: string;
 }
+

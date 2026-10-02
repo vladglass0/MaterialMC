@@ -19,6 +19,8 @@
 #include "BuildConfig.h"
 #include "InstanceImportTask.h"
 #include "InstanceList.h"
+#include "minecraft/MinecraftInstance.h"
+#include "interaction/UserInteraction.h"
 #include "Version.h"
 #include "icons/IconList.h"
 #include "modplatform/ResourceAPI.h"
@@ -102,6 +104,8 @@ QJsonObject serializeVersion(const ModPlatform::IndexedVersion& version)
         { "loaders", loaders },
         { "date", version.date },
         { "fileName", version.fileName },
+        { "downloadUrl", version.downloadUrl },
+        { "changelog", version.changelog },
         { "compatible", true },
     };
 }
@@ -249,13 +253,16 @@ QJsonObject ModpackApi::startImport(const QUrl& url,
                                     const QString& group,
                                     const QString& originalName,
                                     const QString& originalVersion,
-                                    const QMap<QString, QString>& extraInfo)
+                                    const QMap<QString, QString>& extraInfo,
+                                    const QString& icon,
+                                    bool confirmUpdate)
 {
     auto* creation = new InstanceImportTask(url, trusted, nullptr, extraInfo);
     creation->setName(name);
     creation->setOriginalName(originalName.trimmed(), originalVersion);
     creation->setGroup(group);
-    creation->setIcon("default");
+    creation->setIcon(icon);
+    creation->setConfirmUpdate(confirmUpdate);
     APPLICATION->settings()->set("LastUsedGroupForNewInstance", group);
     Task::Ptr task(APPLICATION->instances()->wrapInstanceTask(creation));
     return { { "taskId", m_tasks->start(task, trusted ? "modpack.install" : "modpack.import", tr("Installing %1").arg(name)) } };
@@ -612,6 +619,50 @@ QJsonObject ModpackApi::installFtbApp(const QJsonObject& p)
     return { { "taskId", m_tasks->start(task, "modpack.install", tr("Importing %1").arg(name)) } };
 }
 
+void ModpackApi::managedVersions(const QJsonObject& p, const ApiReply& reply)
+{
+    const auto id = params::requireNonEmpty(p, "id", 512);
+    auto* instance = APPLICATION->instances()->getInstanceById(id);
+    if (!instance || !instance->isManagedPack()) {
+        throw ApiError::notFound(tr("Managed pack instance not found"));
+    }
+    const auto type = instance->getManagedPackType();
+    const auto provider = type == QStringLiteral("curseforge") || type == QStringLiteral("flame")
+                              ? ModPlatform::ResourceProvider::FLAME
+                              : ModPlatform::ResourceProvider::MODRINTH;
+    const auto& api = apiFor(provider);
+    auto pack = std::make_shared<ModPlatform::IndexedPack>();
+    pack->addonId = instance->getManagedPackID();
+    ResourceAPI::Callback<QVector<ModPlatform::IndexedVersion>> callbacks;
+    callbacks.onSucceed = [reply](QVector<ModPlatform::IndexedVersion>& versions) {
+        QJsonArray out;
+        for (const auto& version : versions) out.append(serializeVersion(version));
+        reply.resolve(out);
+    };
+    callbacks.onFail = [reply](const QString& reason, int) { reply.reject(ApiError("NETWORK_ERROR", reason)); };
+    callbacks.onAbort = [reply] { reply.reject(ApiError::cancelled()); };
+    runRequest(api.getProjectVersions({ .pack = pack, .mcVersions = {}, .loaders = {},
+                                        .resourceType = ModPlatform::ResourceType::Modpack,
+                                        .includeChangelog = true }, callbacks), reply);
+}
+
+QJsonObject ModpackApi::updateManagedPack(const QJsonObject& p)
+{
+    const auto id = params::requireNonEmpty(p, "id", 512);
+    auto* instance = APPLICATION->instances()->getInstanceById(id);
+    if (!instance || !instance->isManagedPack()) throw ApiError::notFound(tr("Managed pack instance not found"));
+    const auto url = remoteUrl(params::requireNonEmpty(p, "url", 4096));
+    const auto version = params::optionalString(p, "version", 128).value_or(QString());
+    const auto name = instance->name();
+    if (!interaction::confirm(tr("Confirm Update"), tr("Irreversible changes may be made to the instance's files.\n\nAre you sure?"),
+                               QStringLiteral("warning"), tr("Update"), tr("Cancel"))) {
+        throw ApiError::cancelled();
+    }
+    return startImport(url, true, name, instance->getManagedPackName(), instance->getManagedPackName(), version,
+                       { { "pack_id", instance->getManagedPackID() }, { "pack_version_id", params::requireNonEmpty(p, "versionId", 128) },
+                         { "original_instance_id", id } }, instance->iconKey(), false);
+}
+
 void ModpackApi::registerMethods()
 {
     m_router->add("modpacks.search", [this](const QJsonObject& p, const ApiReply& reply) {
@@ -667,6 +718,11 @@ void ModpackApi::registerMethods()
         callbacks.onAbort = [reply] { reply.reject(ApiError::cancelled()); };
         runRequest(api.searchProjects(args, callbacks), reply);
     });
+
+    m_router->add("modpacks.managedVersions", [this](const QJsonObject& p, const ApiReply& reply) {
+        managedVersions(p, reply);
+    });
+    m_router->addSync("modpacks.updateManagedPack", [this](const QJsonObject& p) { return updateManagedPack(p); });
 
     m_router->add("modpacks.versions", [this](const QJsonObject& p, const ApiReply& reply) {
         if (params::requireString(p, "provider", 64) == "ftb-app") {
